@@ -1,0 +1,318 @@
+# ============================================================================
+# UVM Verification Environment Configuration
+# ============================================================================
+
+verification:
+  project_name: "ALU Functional Verification"
+  dut_config: "config_dut.yaml"  # Reference to DUT config
+  testbench_name: "alu_tb"
+  uvm_version: "1.2"
+  
+# ============================================================================
+# UVM Environment Structure
+# ============================================================================
+environment:
+  name: alu_env
+  type: uvm_env
+  
+  components:
+    # Agent for driving inputs
+    - name: alu_agent
+      type: uvm_agent
+      mode: active  # active/passive
+      interface: alu_if
+      direction: input
+      
+      subcomponents:
+        driver:
+          enabled: true
+          type: uvm_driver
+          
+        sequencer:
+          enabled: true
+          type: uvm_sequencer
+          
+        monitor:
+          enabled: true
+          type: uvm_monitor
+          
+        coverage:
+          enabled: true
+          type: uvm_subscriber
+    
+    - name: output_agent
+      type: uvm_agent
+      mode: passive
+      interface: alu_if
+      direction: output
+      
+      subcomponents:
+        monitor:
+          enabled: true
+          type: uvm_monitor
+          
+        coverage:
+          enabled: true
+          type: uvm_subscriber
+
+    # Scoreboard for checking
+    - name: scoreboard
+      type: uvm_scoreboard
+      inputs:
+        - from: alu_agent.monitor # could this be done as redefiniton ? inherited ?
+          port: analysis_port
+        - from: output_agent.monitor
+          port: analysis_port
+      comparison_method: golden_model
+      
+    # Golden/Reference Model
+    - name: golden_model
+      type: uvm_subscriber
+      input_from: alu_agent.driver
+      behavior: "config_dut.yaml:behavior"  # Use DUT behavior spec
+      
+# ============================================================================
+# Transaction Definition
+# ============================================================================
+transactions:
+  # Input transaction
+  name: AluTransaction
+  base_class: uvm_sequence_item
+  
+  auto_generater_from_dut: true # Automatically generate fields from DUT config file
+  # TODO: what if this is false ? Then what ?
+
+  field_overrides:
+    - name: rst
+      randomize:false
+      default: 0
+    
+    - name: act
+      randomize: false 
+      default: 1
+    
+    - name: op
+      randomize: true
+    
+    - name: movi
+      randomize: true
+
+  methods:
+    - do_copy
+    - do_compare
+    - do_print
+    - do_record
+
+# ============================================================================
+# Sequences Definition
+# ============================================================================
+sequences:
+  # Base sequence
+  - name: base_sequence
+    type: uvm_sequence # should i really use uvm_sequence ? will there be different types ?
+    transaction: AluTransaction # Reference to transaction defined above
+    abstract: true
+    
+  # Random sequence
+  - name: random_sequence
+    type: uvm_sequence
+    extends: base_sequence
+    transaction_count: "configurable" # set via test 
+    randomization: full
+    description: "Fully randomized transactions"
+    
+  # Directed sequences
+  - name: corner_case_sequence
+    type: uvm_sequence
+    extends: base_sequence
+    transaction_count: 50
+    description: "Focus on corner cases"
+    constraints:
+    # use corner_case from config_dut.yaml
+      - use_corner_cases: true
+      #- "reg_a inside {0, MAX_VALUE, [1:15], [(MAX_VALUE-15):(MAX_VALUE-1)]}"
+      #- "reg_b inside {0, MAX_VALUE}"
+      
+  - name: all_operations_sequence
+    type: uvm_sequence
+    extends: base_sequence
+    description: "Execute each operation at least once"
+    directed: true
+    # some field to tell this should use operations from config_dut.yaml ?
+    operation_list: "config_dut.yaml:operations" 
+
+  - name: mult_sequence
+    type: uvm_sequence
+    extends: base_sequence
+    transaction_count: 100
+    description: "Focus on multiplication"
+    constraints:
+      - "op == MULT"
+      
+  - name: zero_output_sequence
+    type: uvm_sequence
+    extends: base_sequence
+    description: "Try to generate zero output"
+    constraints:
+      - "op == SUB"
+      - "reg_a == reg_b"
+
+# ============================================================================
+# Coverage Configuration
+# ============================================================================
+coverage:
+  enable: true
+  per_instance: true  # Enable per-instance coverage
+  
+  # Auto-generate coverpoints for:
+  # - All enum ports (OP, MOVI)
+  # - All data ports with corner_cases bins
+  # - Transition coverage for operations
+  auto_generate:
+    enum_coverpoints: true
+    data_coverpoints: true
+    transitions: true
+
+  # Manual coverpoint specifications (if needed)
+  custom_coverpoints:
+    - name: alu_output_corners
+      sample_field: "ex_alu"
+      bins:
+        - name: zeros
+          values: [0]
+        - name: max_8bit
+          values: [0xFF]
+        - name: max_16bit
+          values: [0xFFFF]
+  
+  # Cross coverage (auto-generated from DUT config)
+  cross_coverage:
+    - coverpoints: [opA_coverage, movi_coverage]
+    - coverpoints: [opB_coverage, movi_coverage]
+    - coverpoints: [opIMM_coverage, movi_coverage]
+    - coverpoints: [opMEM_coverage, movi_coverage]
+
+  # Coverage goals
+  goals:
+    functional: 100
+    code: 95
+    toggle: 90
+
+
+# ============================================================================
+# Test Configuration
+# ============================================================================
+tests:
+  # Base test
+  - name: base_test
+    type: uvm_test
+    environment: alu_env # Reference to environment defined above, this shouldn't be empty, since we could have multiple envs
+    abstract: true
+    build_phase: default
+    run_phase: default
+    
+  # Smoke test
+  - name: smoke_test
+    type: uvm_test
+    extends: base_test
+    sequence: random_sequence
+    transaction_count: 50
+    timeout: 1000  # ns
+    description: "Quick sanity check"
+    
+  # Full random test
+  - name: random_test
+    type: uvm_test
+    extends: base_test
+    sequence: random_sequence
+    transaction_count: 1000
+    timeout: 50000  # ns
+    description: "Extensive random testing"
+    
+  # Coverage test
+  - name: coverage_test
+    type: uvm_test
+    extends: base_test
+    sequence: random_sequence
+    transaction_count: 5000
+    timeout: 200000  # ns
+    coverage_goal: 100
+    description: "Achieve 100% functional coverage"
+    
+  # Directed test
+  - name: directed_test
+    type: uvm_test
+    extends: base_test
+    sequences:
+      - all_operations_sequence
+      - corner_case_sequence
+      - mult_sequence
+      - zero_output_sequence
+      - max_output_sequence
+    description: "Directed testing of specific scenarios"
+  
+  # Regression test
+  - name: regression_test
+    extends: base_test
+    sequences:
+      - random_sequence: {count: 2000}
+      - directed_test: {}
+    timeout: 300000  # ns
+    description: "Full regression suite"
+
+# ============================================================================
+# Simulation Configuration
+# ============================================================================
+simulation:
+  simulator: questa
+  
+  compilation:
+    options:
+      - "+incdir+./agents"
+      - "-timescale 1ps/1ps"
+      - "-sv"
+      - "+define+UVM_NO_DEPRECATED"
+    
+  elaboration:
+    options:
+      - "-uvmcontrol=all"
+      
+  simulation_options:
+    default_test: random_test
+    verbosity: UVM_MEDIUM
+    coverage: true
+    coverage_options:
+      - "-cvgperinstance"
+    
+  waveform:
+    enabled: true
+    format: wlf
+    save_signals:
+      - "/*"  # All signals
+      
+  reporting:
+    formats:
+      - html
+      - text
+    outputs:
+      coverage: "coverage_report.html"
+      log: "simulation.log"
+
+# ============================================================================
+# Random Control
+# ============================================================================
+randomization:
+  seed: 12345  # Fixed seed for reproducibility (or 'random' for varying)
+  
+  # Constraint solver settings
+  solver:
+    mode: fast  # fast / accurate
+    
+  # Distribution weights (optional - override defaults)
+  weights:
+    operation:
+      MULT: 5  # More multiplication tests
+      ADD: 10
+      SUB: 10
+      # Others: default weight = 1
+# IDK TBH

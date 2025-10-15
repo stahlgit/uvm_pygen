@@ -1,0 +1,316 @@
+# ============================================================================
+# DUT Configuration - Hardware Description Only
+# ============================================================================
+dut:
+  name: alu
+  description: "Arithmetic Logic Unit with 16 operations"
+  data_width: 8
+  output_width: 16 # for multiplication result
+  clock_period: 10 # ns
+  reset_type: sync # sync / async
+  language: systemverilog # verilog / systemverilog / vhdl
+
+# ============================================================================
+# Parameters (for SystemVerilog generation)
+# ============================================================================
+parameters:
+  - name: DATA_WIDTH
+    value: 8
+    description: "Width of data operands"
+  
+  - name: OUTPUT_WIDTH
+    value: 16
+    description: "Width of output (for multiplication)"
+    
+  - name: MAX_VALUE
+    value: "pow(2, DATA_WIDTH) - 1"
+    description: "Maximum value for DATA_WIDTH bits"
+#TODO: not sure about this 
+
+# ============================================================================
+# Enumerations (shared across all files)
+# ============================================================================
+enums:
+  # Operations enum
+  operation_t:
+    type: "logic [3:0]"
+    values:
+      - {value: 0, name: ADD, description: "Addition"}
+      - {value: 1, name: SUB, description: "Subtraction"}
+      - {value: 2, name: MULT, description: "Multiplication"}
+      - {value: 3, name: AND, description: "Bitwise AND"}
+      - {value: 4, name: OR, description: "Bitwise OR"}
+      - {value: 5, name: XOR, description: "Bitwise XOR"}
+      - {value: 6, name: SHIFT_LEFT, description: "Logical shift left"}
+      - {value: 7, name: SHIFT_RIGHT, description: "Logical shift right"}
+      - {value: 8, name: ROTATE_LEFT, description: "Rotate left"}
+      - {value: 9, name: ROTATE_RIGHT, description: "Rotate right"}
+      - {value: 10, name: NOT, description: "Bitwise NOT"}
+      - {value: 11, name: NAND, description: "Bitwise NAND"}
+      - {value: 12, name: NOR, description: "Bitwise NOR"}
+      - {value: 13, name: XNOR, description: "Bitwise XNOR"}
+      - {value: 14, name: INC, description: "Increment"}
+      - {value: 15, name: DEC, description: "Decrement"}
+  
+  # MOVI enum
+  movi_t:
+    type: "logic [1:0]"
+    values:
+      - {value: 0, name: REGB_OPERAND, description: "Use REG_B as operand"}
+      - {value: 1, name: MEM_OPERAND, description: "Use MEM as operand"}
+      - {value: 2, name: IMM_OPERAND, description: "Use IMM as operand"}
+      - {value: 3, name: UNKNOWN, description: "Invalid - should not be used"}
+
+# ============================================================================
+# Ports Definition
+# ============================================================================
+ports:
+  # Clock and Reset
+  - name: CLK 
+    direction: input
+    type: logic
+    width: 1 # single bit
+    description: "Clock signal"
+    is_clock: true
+
+  - name: RST
+    direction: input
+    type: logic
+    width: 1
+    description: "Reset signal (synchronous)"
+    is_reset: true
+    active_level: high
+  
+  # Control Inputs
+  - name: ACT
+    direction: input
+    type: logic
+    width: 1
+    description: "Activate signal for operation"
+    group: control
+  
+  # OP(3:0) [in]
+  - name: OP
+    direction: input
+    type: logic
+    width: (3:0) # also could be "4"
+    description: "Operation selector (16 operations)"
+    group: control
+    enum_type: operation_t # could be enum_type or enum
+
+  # MOVI (1:0) [in]
+  - name: MOVI
+    direction: input
+    type: logic
+    width: 2
+    description: "operand B selector"
+    group: control
+    enum: movi_t # could be enum_type or enum
+
+  # DATA INPUTS
+  # REG_ A (DATA WIDTH-1:0) [in]
+  - name: REG_A
+    direction: input
+    type: logic
+    width: DATA_WIDTH # reference parameter
+    description: "Register A operand"
+    group: data_input
+  
+  # REG_ B (DATA WIDTH-1:0) [in]
+  - name: REG_B
+    direction: input
+    type: logic
+    width: DATA_WIDTH # reference parameter
+    description: "Register B operand"
+    group: data_input
+  
+  - name: MEM
+    direction: input
+    type: logic
+    width: DATA_WIDTH # reference parameter
+    description: "Memory operand"
+    group: data_input
+
+  - name: IMM
+    direction: input
+    type: logic
+    width: DATA_WIDTH # reference parameter
+    description: "Immediate operand"
+    group: data_input
+
+  # Outputs
+  - name: EX_ALU_VLD
+    direction: output
+    type: logic
+    width: 1
+    description: "Output valid signal"
+    group: output
+    
+  - name: EX_ALU
+    direction: output
+    type: logic
+    width: OUTPUT_WIDTH # reference parameter
+    description: "ALU result (16-bit for multiplication)"
+    group: output
+
+# TODO: whats this
+# ============================================================================
+# Protocol/Timing Specification
+# ============================================================================
+protocol:
+  type: synchronous
+  clock_edge: posedge
+  reset_cycles: 5
+  reset_behavior: "All outputs set to 0"
+  
+  # Operation-specific timing
+  operations: # TODO: this could be named "timing"
+    default:
+      latency: 1  # cycles from ACT to EX_ALU_VLD
+      description: "Most operations complete in 1 cycle"
+      # - name: default
+      
+    MULT:
+      latency: 2  # cycles
+      multi_cycle: true
+      description: "Multiplication delivers result in 2 cycles (LSB first, then MSB)"
+      output_behavior:
+        - cycle: 1
+          signals:
+            EX_ALU_VLD: 1
+            EX_ALU: "result[7:0]  // LSB"
+        - cycle: 2
+          signals:
+            EX_ALU_VLD: 1
+            EX_ALU: "result[15:8] // MSB"
+
+
+# ============================================================================
+# DUT Behavior Specification (for golden model generation)
+# ============================================================================
+behavior:
+  # Operand selection logic
+  operand_selection:
+    input: MOVI
+    output: operand_b
+    mapping:
+      REGB_OPERAND: REG_B
+      MEM_OPERAND: MEM
+      IMM_OPERAND: IMM
+      UNKNOWN: UNKNOWN  
+  
+  # Operation implementations
+  operations:
+    - op: ADD
+      formula: "REG_A + operand_b"
+      output_width: DATA_WIDTH
+      overflow: truncate
+      
+    - op: SUB
+      formula: "REG_A - operand_b"
+      output_width: DATA_WIDTH
+      overflow: truncate
+      
+    - op: MULT
+      formula: "REG_A * operand_b"
+      output_width: OUTPUT_WIDTH
+      latency: 2
+      notes: "16-bit result delivered in 2 cycles (LSB, MSB)"
+      
+    - op: AND
+      formula: "REG_A & operand_b"
+      output_width: DATA_WIDTH
+      
+    - op: OR
+      formula: "REG_A | operand_b"
+      output_width: DATA_WIDTH
+      
+    - op: XOR
+      formula: "REG_A ^ operand_b"
+      output_width: DATA_WIDTH
+      
+    - op: SHIFT_LEFT
+      formula: "REG_A << operand_b"
+      output_width: DATA_WIDTH
+      
+    - op: SHIFT_RIGHT
+      formula: "REG_A >> operand_b"
+      output_width: DATA_WIDTH
+      
+    - op: ROTATE_LEFT
+      formula: "rotate_left(REG_A, operand_b)"
+      output_width: DATA_WIDTH
+      implementation: |
+        shift_amount = operand_b % DATA_WIDTH
+        result = (REG_A << shift_amount) | (REG_A >> (DATA_WIDTH - shift_amount))
+      
+    - op: ROTATE_RIGHT
+      formula: "rotate_right(REG_A, operand_b)"
+      output_width: DATA_WIDTH
+      implementation: |
+        shift_amount = operand_b % DATA_WIDTH
+        result = (REG_A >> shift_amount) | (REG_A << (DATA_WIDTH - shift_amount))
+    
+    - op: NOT
+      formula: "~REG_A"
+      output_width: DATA_WIDTH
+      notes: "Unary operation - operand_b ignored"
+      
+    - op: NAND
+      formula: "~(REG_A & operand_b)"
+      output_width: DATA_WIDTH
+      
+    - op: NOR
+      formula: "~(REG_A | operand_b)"
+      output_width: DATA_WIDTH
+      
+    - op: XNOR
+      formula: "~(REG_A ^ operand_b)"
+      output_width: DATA_WIDTH
+      
+    - op: INC
+      formula: "REG_A + 1"
+      output_width: DATA_WIDTH
+      overflow: wrap
+      notes: "Unary operation - operand_b ignored"
+      
+    - op: DEC
+      formula: "REG_A - 1"
+      output_width: DATA_WIDTH
+      overflow: wrap
+      notes: "Unary operation - operand_b ignored"
+
+# ============================================================================
+# Constraints (for transaction generation)
+# ============================================================================
+constraints:
+  global:
+    - name: valid_operation
+      description: "Operation must be valid"
+      constraint: "OP inside {[ADD:DEC]}"
+      
+    - name: valid_movi
+      description: "MOVI must not be UNKNOWN"
+      constraint: "MOVI != UNKNOWN"
+      
+  corner_cases:
+    - name: zero_operand
+      values: [0]
+      
+    - name: max_operand
+      values: ["MAX_VALUE"]
+      
+    - name: small_values
+      range: [1, 15]
+      
+    - name: large_values
+      range: ["MAX_VALUE-15", "MAX_VALUE-1"]
+
+# ============================================================================
+# Metadata
+# ============================================================================
+metadata:
+  version: "1.0"
+  author: "Auto-generated"
+  date: "YYYY-MM-DD"
+  tags: ["ALU", "arithmetic", "logic"]

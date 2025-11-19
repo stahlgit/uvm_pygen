@@ -4,4 +4,57 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "pyyaml>=6.0.3",
+    "ruff>=0.14.0",
+]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py314"
+exclude = ["build", "dist", ".venv", "lib", "tools"]
+fix = true
+
+[tool.ruff.lint]
+ignore = ["F403", "E501", "PLR0913"]
+# Enable rulesets
+select = [
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "I", # isort
+    "D", # pydocstyle
+    "UP", # pyupgrade
+    "C90", # mccabe complexity
+    "TID", # tidy imports
+    "PL", # pylint (partial)
+    "SIM", # simplify
+    "PT", # pytest
+    "B", # bugbear
+    "A", # builtins
+    "DTZ"  # datetime
+]
+
+# Docstring style (Google)
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+strict_optional = true
+no_implicit_optional = true
+follow_imports = "normal"
+show_error_codes = true
+pretty = true
+exclude = "lib/|venv/|tools/|doc/"
+
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]

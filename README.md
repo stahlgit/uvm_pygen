@@ -1,44 +1,56 @@
-<details>
-<summary> <b>uv_root</b> </summary>
+```mermaid
+flowchart
+Config_Loader-->Schema_Checker
+Schema_Checker-->Model_Builder/Resolver
+Model_Builder/Resolver --> Dependency_Graph
+Dependency_Graph-->|feedback|Model_Builder/Resolver
+Dependency_Graph-->Template_Engine
+subgraph Generator_layer
+  Template_Engine-->Code_Generator
+end
+Code_Generator-->Output_writter
 
-- <details>
-    <summary>uvm_component</summary>
+```
 
-    - <details>
-        <summary>uvm_env</summary>
-      </details>
-    
-    - <details>
-        <summary>uvm_test</summary>
-        vytvára inštanciu UVM prostredia (uvm_env) a štartuje sekvenciu(uvm_sequence)
-      </details>
-    
-    - <details>
-        <summary>**uvm_agent**</summary>
-        
-        * <details>
-            <summary>uvm_driver</summary>
-            driver
-          </details>
-        * <details>
-            <summary>uvm_sequencer</summary>
-            sequencer
-          </details>
-        </details>
-    
-    - <details>
-        <summary>uvm_scoreboard</summary>
-      </details>
-    
-    - <details>
-        <summary>uvm_subscriber</summary>
-      </details>
+Generator layer = dispatcher
+```
+  for agent in env_model.agents:
+      self._generate_file("agent.sv.j2", {"agent": agent}, f"{agent.name}_agent.sv")
+```
 
-  </details>
+**Env -> Agent -> (Driver, Monitor, Sequencer)**
 
-- <details>
-    <summary>uvm_object</summary>
-    base for everything non-component
-  </details>
 
-</details>
+#### PyObjects representation 
+
+```mermaid
+flowchart TD
+uvm_component:config_defined
+
+
+uvm_agent:template_defined --> uvm_component:config_defined
+uvm_driver:template_defined--> uvm_component:config_defined
+uvm_sequencer:template_defined--> uvm_component:config_defined
+uvm_monitor:template_defined--> uvm_component:config_defined
+
+```
+
+
+```
+class EnvModel:
+    agents: List[AgentModel]
+
+    def __init__(self, name, agents):
+        self.name = name
+        self.agents = [Agent(a["name"], a["type"], a.get("active", True)) for a in agents]
+
+class Agent:
+    driver: DriverModel
+    monitor: MonitorModel
+    sequencer: SequencerModel
+
+    def __init__(self, name, agent_type, active):
+        self.name = name
+        self.type = agent_type
+        self.active = active
+```

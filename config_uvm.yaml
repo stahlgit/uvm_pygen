@@ -14,14 +14,15 @@ verification:
 environment:
   name: alu_env
   type: uvm_env
+  #TODO: interface alu_if + possibility to add more (clocks, modports, etc.)
   
   components:
     # Agent for driving inputs
     - name: alu_agent
+      # also add connect
       type: uvm_agent
       mode: active  # active/passive
       interface: alu_if
-      direction: input
       
       subcomponents:
         driver:
@@ -40,7 +41,7 @@ environment:
           enabled: true
           type: uvm_subscriber
     
-    - name: output_agent
+    - name: output_agent # passive agent
       type: uvm_agent
       mode: passive
       interface: alu_if
@@ -55,6 +56,7 @@ environment:
           enabled: true
           type: uvm_subscriber
 
+    #TODO add connect --> then we know how to connect analysis ports (scoreboard)
     # Scoreboard for checking
     - name: scoreboard
       type: uvm_scoreboard
@@ -64,13 +66,14 @@ environment:
         - from: output_agent.monitor
           port: analysis_port
       comparison_method: golden_model
-      
+    
+    
+    
     # Golden/Reference Model
-    - name: golden_model
-      type: uvm_subscriber
-      input_from: alu_agent.driver
-      behavior: "config_dut.yaml:behavior"  # Use DUT behavior spec
-      
+    # - name: golden_model
+    #   type: uvm_subscriber
+    #   input_from: alu_agent.driver
+    #   behavior: "config_dut.yaml:behavior"  # Use DUT behavior spec
 # ============================================================================
 # Transaction Definition
 # ============================================================================
@@ -79,12 +82,12 @@ transactions:
   name: AluTransaction
   base_class: uvm_sequence_item
   
-  auto_generater_from_dut: true # Automatically generate fields from DUT config file
-  # TODO: what if this is false ? Then what ?
+  #auto_generater_from_dut: true # Automatically generate fields from DUT config file
+  # just do all methods
 
   field_overrides:
     - name: rst
-      randomize:false
+      randomize: false
       default: 0
     
     - name: act
@@ -96,12 +99,12 @@ transactions:
     
     - name: movi
       randomize: true
-
-  methods:
-    - do_copy
-    - do_compare
-    - do_print
-    - do_record
+  # do all without user permission 
+  #methods:
+  #  - do_copy
+  #  - do_compare
+  #  - do_print
+  #  - do_record
 
 # ============================================================================
 # Sequences Definition
@@ -161,6 +164,7 @@ sequences:
 # Coverage Configuration
 # ============================================================================
 coverage:
+  # For now EMPTY
   enable: true
   per_instance: true  # Enable per-instance coverage
   
@@ -193,6 +197,7 @@ coverage:
     - coverpoints: [opMEM_coverage, movi_coverage]
 
   # Coverage goals
+  # OPTIONAL 
   goals:
     functional: 100
     code: 95
@@ -212,13 +217,13 @@ tests:
     run_phase: default
     
   # Smoke test
-  - name: smoke_test
-    type: uvm_test
-    extends: base_test
-    sequence: random_sequence
-    transaction_count: 50
-    timeout: 1000  # ns
-    description: "Quick sanity check"
+  # - name: smoke_test
+  #   type: uvm_test
+  #   extends: base_test
+  #   sequence: random_sequence
+  #   transaction_count: 50
+  #   timeout: 1000  # ns
+  #   description: "Quick sanity check"
     
   # Full random test
   - name: random_test
@@ -230,41 +235,43 @@ tests:
     description: "Extensive random testing"
     
   # Coverage test
-  - name: coverage_test
-    type: uvm_test
-    extends: base_test
-    sequence: random_sequence
-    transaction_count: 5000
-    timeout: 200000  # ns
-    coverage_goal: 100
-    description: "Achieve 100% functional coverage"
+  # - name: coverage_test
+  #   type: uvm_test
+  #   extends: base_test
+  #   sequence: random_sequence
+  #   transaction_count: 5000
+  #   timeout: 200000  # ns
+  #   coverage_goal: 100
+  #   description: "Achieve 100% functional coverage"
     
   # Directed test
-  - name: directed_test
-    type: uvm_test
-    extends: base_test
-    sequences:
-      - all_operations_sequence
-      - corner_case_sequence
-      - mult_sequence
-      - zero_output_sequence
-      - max_output_sequence
-    description: "Directed testing of specific scenarios"
+  # - name: directed_test
+  #   type: uvm_test
+  #   extends: base_test
+  #   sequences:
+  #     - all_operations_sequence
+  #     - corner_case_sequence
+  #     - mult_sequence
+  #     - zero_output_sequence
+  #     - max_output_sequence
+  #   description: "Directed testing of specific scenarios"
   
   # Regression test
-  - name: regression_test
-    extends: base_test
-    sequences:
-      - random_sequence: {count: 2000}
-      - directed_test: {}
-    timeout: 300000  # ns
-    description: "Full regression suite"
+  # - name: regression_test
+  #   extends: base_test
+  #   type: uvm_test
+  #   sequences:
+  #     - random_sequence: {count: 2000}
+  #     - directed_test: {}
+  #   timeout: 300000  # ns
+  #   description: "Full regression suite"
 
 # ============================================================================
 # Simulation Configuration
 # ============================================================================
 simulation:
-  simulator: questa
+  # simulator: questa just questa only it could be extended later
+  # hardcoded for now
   
   compilation:
     options:
@@ -303,16 +310,3 @@ simulation:
 # ============================================================================
 randomization:
   seed: 12345  # Fixed seed for reproducibility (or 'random' for varying)
-  
-  # Constraint solver settings
-  solver:
-    mode: fast  # fast / accurate
-    
-  # Distribution weights (optional - override defaults)
-  weights:
-    operation:
-      MULT: 5  # More multiplication tests
-      ADD: 10
-      SUB: 10
-      # Others: default weight = 1
-# IDK TBH

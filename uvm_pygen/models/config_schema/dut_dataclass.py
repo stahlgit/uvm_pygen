@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+from uvm_pygen.constants.uvm_enum import ActiveLevel, Direction
+
 @dataclass
 class DUTInfo:
     """Basic DUT information."""
@@ -9,7 +11,7 @@ class DUTInfo:
     data_width: int # TODO: create parser for (1:0) format
     output_width: int
     clock_period: int # in ns
-    reset_type: str # e.g., "active_high", "active_low"
+    reset_type: ActiveLevel 
     language: str
     description: str | None = None
 
@@ -57,14 +59,14 @@ class EnumType:
 class Port:
     """DUT port definition."""
     name: str
-    direction: str # e.g., "input", "output", "inout" #TODO: create enum or checker
+    direction: Direction
     type: str # e.g., "logic", "wire"
     width: Any # TODO: create parser for (1:0) format or int also string reference (e.g., DATA_WIDTH)
     description: str | None = None
     group: str | None = None # e.g., "clock", "reset", "data", "control"
     is_clock: bool = False
     is_reset: bool = False
-    active_level: str | None = None # e.g., "active_high", "active_low" --> could be enum | transformed to bool
+    active_level: ActiveLevel | None = None
     enum_type: EnumType | None = None # Reference to EnumType if port is of enum type 
     enum: EnumType | None = None # IS there possibility to combine this with enum_type? 
 

@@ -1,4 +1,4 @@
-from uvm_pygen.loader import ConfigLoader
+from uvm_pygen.services.loader import ConfigLoader
 
 
 if __name__ == "__main__":
@@ -9,40 +9,72 @@ if __name__ == "__main__":
     )
     
     # Validate
-    loader.validate()
+    if not loader.validate():
+        print("\n❌ Configuration validation failed!")
+        exit(1)
     
     # Print summary
     loader.summary()
     
-    # Example: Access DUT information
-    print("\n" + "="*60)
-    print("EXAMPLE QUERIES")
-    print("="*60)
+    # 4. Display environment model summary (includes agents)
+    print("\n" + "="*70)
+    print("ENVIRONMENT MODEL WITH AGENTS")
+    print("="*70)
+    loader.env_model.summary()
     
-    # Get operation enum
-    op_enum = loader.dut.get_enum('operation_t')
-    print(f"\nOperation enum has {len(op_enum.values)} operations:")
-    for op_val in op_enum.values[:5]:  # First 5
-        print(f"  {op_val.value}: {op_val.name} - {op_val.description}")
+    # 5. Test individual agent access
+    print("\n" + "="*70)
+    print("AGENT ACCESS TEST")
+    print("="*70)
     
-    # Get specific operation behavior
-    mult_op = loader.dut.get_operation('MULT')
-    if mult_op:
-        print(f"\nMULT operation:")
-        print(f"  Formula: {mult_op.formula}")
-        print(f"  Output width: {mult_op.output_width}")
-        print(f"  Latency: {mult_op.latency}")
+    alu_agent = loader.env_model.get_agent("alu_agent")
+    if alu_agent:
+        print(f"\n✓ Found agent: {alu_agent.name}")
+        print(f"  Mode: {alu_agent.mode}")
+        print(f"  Active: {alu_agent.is_active()}")
+        print(f"  Interface ports: {len(alu_agent.get_all_ports())}")
+        print(f"  Enum types: {list(alu_agent.get_enum_types().keys())}")
+        
+        if alu_agent.driver:
+            print(f"\n  Driver:")
+            print(f"    Name: {alu_agent.driver.name}")
+            print(f"    Driven ports: {[p.name for p in alu_agent.driver.driven_ports]}")
+        
+        if alu_agent.monitor:
+            print(f"\n  Monitor:")
+            print(f"    Name: {alu_agent.monitor.name}")
+            print(f"    Monitored ports: {[p.name for p in alu_agent.monitor.monitored_ports]}")
+        
+        if alu_agent.sequencer:
+            print(f"\n  Sequencer:")
+            print(f"    Name: {alu_agent.sequencer.name}")
+            print(f"    Transaction type: {alu_agent.sequencer.transaction_type}")
     
-    # Get control ports
-    print(f"\nControl ports:")
-    for port in loader.dut.get_control_ports():
-        width = loader.dut.resolve_width(port.width)
-        print(f"  {port.name}[{width-1}:0]: {port.description}")
+    output_agent = loader.env_model.get_agent("output_agent")
+    if output_agent:
+        print(f"\n✓ Found agent: {output_agent.name}")
+        print(f"  Mode: {output_agent.mode}")
+        print(f"  Active: {output_agent.is_active()}")
+        print(f"  Interface direction: {output_agent.interface.direction}")
+        print(f"  Has driver: {output_agent.driver is not None}")
+        print(f"  Has monitor: {output_agent.monitor is not None}")
     
-    # Get test configuration
-    random_test = loader.uvm.get_test('random_test')
-    if random_test:
-        print(f"\nRandom test configuration:")
-        print(f"  Sequence: {random_test.sequence}")
-        print(f"  Transaction count: {random_test.transaction_count}")
-        print(f"  Timeout: {random_test.timeout} ns")
+    # 6. Test agent filtering
+    print("\n" + "="*70)
+    print("AGENT FILTERING TEST")
+    print("="*70)
+    
+    active_agents = loader.env_model.get_active_agents()
+    passive_agents = loader.env_model.get_passive_agents()
+    
+    print(f"\nActive agents ({len(active_agents)}):")
+    for agent in active_agents:
+        print(f"  - {agent.name}")
+    
+    print(f"\nPassive agents ({len(passive_agents)}):")
+    for agent in passive_agents:
+        print(f"  - {agent.name}")
+    
+    print("\n" + "="*70)
+    print("✓ Agent model test completed successfully!")
+    print("="*70)

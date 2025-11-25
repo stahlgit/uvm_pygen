@@ -1,14 +1,12 @@
 """UVM Configuration Model."""
 import yaml
 from pathlib import Path
-from uvm_pygen.models.dut.dut_config import DUTConfiguration
-from uvm_pygen.models.uvm.uvm_dataclass import Component, Sequence, Test
+from uvm_pygen.services.config_parser.dut_config import DUTConfiguration
+from uvm_pygen.models.config_schema.uvm_dataclass import Component, Sequence, Test
 
 
 class UVMConfiguration:
-    """
-    UVM Configuration - Verification Environment
-    """
+    """UVM Configuration - Verification Environment"""
     
     def __init__(self, config_path: str, dut_config: DUTConfiguration) -> None:
         self.config_path = Path(config_path)

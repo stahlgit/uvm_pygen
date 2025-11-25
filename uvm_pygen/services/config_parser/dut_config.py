@@ -3,7 +3,7 @@ from typing import Any
 import yaml
 from pathlib import Path
 
-from uvm_pygen.models.dut.dut_dataclass import Constraints, DUTInfo, EnumType, EnumValue, Operation, OperationTiming, Parameter, Port
+from uvm_pygen.models.config_schema.dut_dataclass import Constraints, DUTInfo, EnumType, EnumValue, Operation, OperationTiming, Parameter, Port
 
 
 class DUTConfiguration:
@@ -68,7 +68,7 @@ class DUTConfiguration:
         ]
         
         # Constraints
-        constraints_dict = self._raw_config.get('constraints', {})
+        constraints_dict = self._raw_config.get('constraints') or {}
         self.global_constraints = [
             Constraints(**c) for c in constraints_dict.get('global', [])
         ]

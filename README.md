@@ -54,3 +54,11 @@ class Agent:
         self.type = agent_type
         self.active = active
 ```
+
+EnvModel
+└── AgentModel (multiple)
+    ├── InterfaceModel
+    ├── DriverModel (optional - active agents only)
+    ├── MonitorModel
+    ├── SequencerModel (optional - active agents only)
+    └── CoverageModel (optional)

@@ -3,14 +3,16 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from uvm_pygen.constants.uvm_enum import AgentMode, Direction
+
 @dataclass
 class Component:
     """UVM component definition."""
     name: str
     type: str
     interface: str | None = None
-    direction: str | None = None  # e.g., "input", "output", "inout"
-    mode: str | None = None # e.g., "active", "passive"
+    direction: Direction | None = None 
+    mode: AgentMode | None = None # e.g., "active", "passive"
     subcomponents: dict = field(default_factory=dict)
     inputs: list[str] | None = None
     comparison_method: str | None = None

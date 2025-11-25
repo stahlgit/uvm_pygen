@@ -1,7 +1,9 @@
 """Configuration Loader Module."""
 
-from uvm_pygen.models.dut.dut_config import DUTConfiguration
-from uvm_pygen.models.uvm.uvm_config import UVMConfiguration
+
+from uvm_pygen.services.config_parser.dut_config import DUTConfiguration
+from uvm_pygen.services.config_parser.uvm_config import UVMConfiguration
+from uvm_pygen.models.generation.env_model import EnvModel
 
 
 class ConfigLoader:
@@ -18,6 +20,8 @@ class ConfigLoader:
         self.uvm = UVMConfiguration(uvm_config_path, self.dut)
         
         print("✓ Configuration loaded successfully")
+        
+        self.env_model = EnvModel.create_from_configs(self.dut, self.uvm)
     
     def validate(self) -> bool:
         """Validate configuration consistency."""

@@ -5,12 +5,10 @@ from typing import Any
 import yaml
 
 from uvm_pygen.models.config_schema.dut_dataclass import (
-    Constraints,
     DUTInfo,
     EnumType,
     EnumValue,
     Operation,
-    OperationTiming,
     Parameter,
     Port,
 )
@@ -18,6 +16,13 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
 
 class DUTConfiguration:
     """DUT Configuration Model - Single source of truth for DUT settings."""
+
+    ### GROUPING ALLIASES
+    __CONTROL_ALIASES = {"control", "ctrl", "config", "cfg", "mode", "select", "cmd"}
+
+    __DATA_IN_ALIASES = {"input", "data_input", "data_in", "din", "operand", "args"}
+
+    __DATA_OUT_ALIASES = {"output", "data_output", "data_out", "dout", "result", "res"}
 
     def __init__(self, config_path: str) -> None:
         """Initialize DUT configuration from YAML file."""
@@ -53,26 +58,10 @@ class DUTConfiguration:
         # Ports
         self.ports = [Port(**p) for p in self._raw_config.get("ports", [])]
 
-        # Protocol timing
-        protocol = self._raw_config.get("protocol", {})
-        self.protocol_type = protocol.get("type", "synchronous")
-        self.clock_edge = protocol.get("clock_edge", "posedge")
-        self.reset_cycles = protocol.get("reset_cycles", 5)
-
-        timing_dict = protocol.get("timing", {})
-        self.operation_timing = {}
-        for op_name, timing_data in timing_dict.items():
-            self.operation_timing[op_name] = OperationTiming(**timing_data)
-
         # Operations behavior
         behavior = self._raw_config.get("behavior", {})
         self.operand_selection = behavior.get("operand_selection", {})
         self.operations = [Operation(**op) for op in behavior.get("operations", [])]
-
-        # Constraints
-        constraints_dict = self._raw_config.get("constraints") or {}
-        self.global_constraints = [Constraints(**c) for c in constraints_dict.get("global", [])]
-        self.corner_cases = constraints_dict.get("corner_cases", [])
 
     def get_enum(self, enam_name: str) -> EnumType | None:
         """Get enum by name."""
@@ -94,19 +83,19 @@ class DUTConfiguration:
 
     def get_control_ports(self) -> list[Port]:
         """Get all control ports (non-data)."""
-        return [p for p in self.ports if p.group == "control"]
-
-    def get_ports_by_group(self, group: str) -> list[Port]:
-        """Get ports by group (e.g., 'clock', 'reset', 'data', 'control')."""
-        return [p for p in self.ports if p.group == group]
+        return [p for p in self.ports if p.group and p.group.lower() in self.__CONTROL_ALIASES]
 
     def get_data_input_ports(self) -> list[Port]:
         """Get all input ports."""
-        return [p for p in self.ports if p.group == "input"]  # TODO: make more robuts / generic
+        return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_IN_ALIASES]
 
     def get_data_output_ports(self) -> list[Port]:
         """Get all output ports."""
-        return [p for p in self.ports if p.group == "output"]  # TODO: make more robuts / generic
+        return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_OUT_ALIASES]
+
+    def get_ports_by_group(self, group: str) -> list[Port]:
+        """Get ports by group name."""
+        return [p for p in self.ports if p.group and p.group.lower() == group.lower()]
 
     def resolve_width(self, width: Any) -> int:
         """Resolve width - can be int or parameter reference."""
@@ -116,7 +105,7 @@ class DUTConfiguration:
         if not isinstance(width, str):
             raise TypeError(f"Width must be int, str, or bus string, got {type(width)}")
 
-        # dut_config.py - vylepšený regex pre () aj []
+        # Matches (MSB:LSB) or [MSB:LSB] formats
         match = re.match(r"\s*[\[\(](?P<msb>\w+)\s*:\s*(?P<lsb>\w+)[\]\)]\s*", width)
         if match:
             msb_str = match.group("msb")

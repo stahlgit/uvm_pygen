@@ -9,9 +9,10 @@ from uvm_pygen.services.config_parser.dut_config import DUTConfiguration
 
 
 class UVMConfiguration:
-    """UVM Configuration - Verification Environment"""
+    """UVM Configuration - Verification Environment."""
 
     def __init__(self, config_path: str, dut_config: DUTConfiguration) -> None:
+        """Initialize UVM configuration from YAML file."""
         self.config_path = Path(config_path)
         self.dut_config = dut_config  # Reference to DUT config
         self._raw_config: dict = {}
@@ -24,7 +25,7 @@ class UVMConfiguration:
             self._raw_config = yaml.safe_load(f)
 
     def _parse(self):
-        """Parse configuration"""
+        """Parse configuration."""
         # Verification info
         verif = self._raw_config["verification"]
         self.project_name = verif["project_name"]

@@ -1,3 +1,5 @@
+"""DUT Configuration Parser and Model."""
+
 import re
 from pathlib import Path
 from typing import Any
@@ -28,40 +30,48 @@ class DUTConfiguration:
         """Initialize DUT configuration from YAML file."""
         self.config_path = Path(config_path)
         self._raw_config: dict = {}
+
+        # storage for detected aliases
+        self.detected_control_aliases: set[str] = set()
+        self.detected_data_in_aliases: set[str] = set()
+        self.detected_data_out_aliases: set[str] = set()
+
         self._load()
         self._parse()
 
-    def _load(self) -> None:
-        """Load YAML file."""
-        with open(self.config_path) as f:
-            self._raw_config = yaml.safe_load(f)
+    def validate(self) -> list[str]:
+        """Validate configuration consistency.
 
-    def _parse(self) -> None:
-        """Parse configuration into structured data."""
-        dut_dict = self._raw_config["dut"]
-        self.dut_info = DUTInfo(
-            name=dut_dict["name"],
-            description=dut_dict["description"],
-            data_width=dut_dict["data_width"],
-            output_width=dut_dict.get("output_width", dut_dict["data_width"]),
-            clock_period=dut_dict["clock_period"],
-            reset_type=dut_dict["reset_type"],
-            language=dut_dict["language"],
-        )
+        Returns:
+            list[str]: A list of error messages. Empty if valid.
+        """
+        errors = []
 
-        self.parameters = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
-        self.enums = {}
-        for enum_name, enum_data in self._raw_config.get("enums", {}).items():
-            values = [EnumValue(**v) for v in enum_data["values"]]
-            self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
+        # Validate and Resolve Port Enums
+        for port in self.ports:
+            if port.enum_name:
+                if port.enum_name in self.enums:
+                    # Link the object for easier access later in UVM gen
+                    port.enum_def = self.enums[port.enum_name]
+                else:
+                    errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
 
-        # Ports
-        self.ports = [Port(**p) for p in self._raw_config.get("ports", [])]
+        # Validate Operations against Enum
+        # Assuming 'operation_t' is the standard enum name for ops (FOR NOW TODO ? CONFIGURABLE)
+        operation_enum = self.get_enum("operation_t")
+        if operation_enum:
+            defined_ops = operation_enum.get_all_names()
+            for op in self.operations:
+                if op.op not in defined_ops:
+                    errors.append(f"Operation logic defined for '{op.op}', but it is not in 'operation_t' enum values.")
 
-        # Operations behavior
-        behavior = self._raw_config.get("behavior", {})
-        self.operand_selection = behavior.get("operand_selection", {})
-        self.operations = [Operation(**op) for op in behavior.get("operations", [])]
+        # Validate Groups (Moved from _resolve_group_aliases logic if you want strictness)
+        try:
+            self._resolve_group_aliases()
+        except ValueError as e:
+            errors.append(str(e))
+
+        return errors
 
     def get_enum(self, enam_name: str) -> EnumType | None:
         """Get enum by name."""
@@ -135,3 +145,75 @@ class DUTConfiguration:
             return self.dut_info.output_width
 
         raise ValueError(f"Cannot resolve width: {width}")
+
+    def _load(self) -> None:
+        """Load YAML file."""
+        with open(self.config_path) as f:
+            self._raw_config = yaml.safe_load(f)
+
+    def _parse(self) -> None:
+        """Parse configuration into structured data."""
+        dut_dict = self._raw_config["dut"]
+        self.dut_info = DUTInfo(
+            name=dut_dict["name"],
+            description=dut_dict["description"],
+            data_width=dut_dict["data_width"],
+            output_width=dut_dict.get("output_width", dut_dict["data_width"]),
+            clock_period=dut_dict["clock_period"],
+            reset_type=dut_dict["reset_type"],
+            language=dut_dict["language"],
+        )
+
+        self.parameters = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
+        self.enums = {}
+        for enum_name, enum_data in self._raw_config.get("enums", {}).items():
+            values = [EnumValue(**v) for v in enum_data["values"]]
+            self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
+
+        # Ports
+        self.ports = []
+        for port in self._raw_config.get("ports", []):
+            if "enum_type" in port:
+                port["enum_type"] = port.pop("enum_type")
+            self.ports.append(Port(**port))
+
+        # Operations behavior
+        behavior = self._raw_config.get("behavior", {})
+        self.operand_selection = behavior.get("operand_selection", {})
+        self.operations = [Operation(**op) for op in behavior.get("operations", [])]
+
+    def _resolve_group_aliases(self) -> None:
+        """Identify which aliases are used for port groups and validate presence.
+
+        Raises:
+            ValueError: If any required group category is missing.
+        """
+        for port in self.ports:
+            if not port.group:
+                continue
+
+            # Normalize to lower case for matching, but store original if preferred
+            group_lower = port.group.lower()
+
+            if group_lower in self.__CONTROL_ALIASES:
+                self.detected_control_aliases.add(port.group)
+            elif group_lower in self.__DATA_IN_ALIASES:
+                self.detected_data_in_aliases.add(port.group)
+            elif group_lower in self.__DATA_OUT_ALIASES:
+                self.detected_data_out_aliases.add(port.group)
+
+        # Check for missing categories
+        missing_groups = []
+        if not self.detected_control_aliases:
+            missing_groups.append("Control (e.g., 'ctrl', 'mode')")
+        if not self.detected_data_in_aliases:
+            missing_groups.append("Data Input (e.g., 'din', 'operand')")
+        if not self.detected_data_out_aliases:
+            missing_groups.append("Data Output (e.g., 'dout', 'result')")
+
+        if missing_groups:
+            raise ValueError(
+                f"Configuration Error: The following required port groups are missing from '{self.dut_info.name}': "
+                f"{', '.join(missing_groups)}. "
+                f"Please ensure ports are assigned valid groups in the YAML config."
+            )

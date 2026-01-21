@@ -1,11 +1,13 @@
 """Service to build Logic Models from Raw Configurations."""
 
+from dataclasses import replace
+
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
 from uvm_pygen.models.logic_schema.transaction_model import SvConstraint, SvVariable, TransactionModel
-from uvm_pygen.services.loader import ConfigLoader
+from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 
 
 class ModelBuilder:
@@ -33,10 +35,19 @@ class ModelBuilder:
         clk_ports = self.loader.dut.get_clock_ports()
         rst_ports = self.loader.dut.get_reset_ports()
 
+        resolved_interface_ports = []
+        for port in interface_ports:
+            try:
+                width_int = self.loader.dut.resolve_width(port.width)
+            except ValueError:
+                print(f"Warning: Could not resolve width for {port.name}, defaulting to 1")
+                width_int = 1
+            resolved_interface_ports.append(replace(port, width=width_int))
+
         # TODO: create interfaces based on how many are defined in UVM config, right now we will create only one interface
         main_interface = InterfaceModel(
             name=self.loader.uvm.interface_list[0],
-            ports=interface_ports,
+            ports=resolved_interface_ports,
             clock=clk_ports[0] if clk_ports else None,
             reset=rst_ports[0] if rst_ports else None,
         )
@@ -71,7 +82,6 @@ class ModelBuilder:
     def _build_transaction_model(self) -> TransactionModel:
         """Vytvorí model transakcie spojením DUT portov a UVM nastavení."""
         variables = []
-        uvm_trans_config = self.loader.uvm  # Prístup k nastaveniam transakcie
 
         # 1. Zozbieraj porty, ktoré chceme v transakcii
         # Zvyčajne: Control + Data Inputs + Outputs (ak chceme self-checking transakciu)

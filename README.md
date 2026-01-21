@@ -3,96 +3,65 @@
 ## Jednoduchá reprezentácia
 
 ```mermaid
-graph TD
-    subgraph Vstupy
-    DUT_CFG[DUT Config YAML]
-    UVM_CFG[UVM Config YAML]
-    TEMPL[Jinja2 Templates]
-    end
-
-    subgraph Python Generator
-    LOADER[Config Loader]
-    MODEL[Internal EnvModel]
-    RENDER[Jinja2 Renderer]
-
-    DUT_CFG --> LOADER
-    UVM_CFG --> LOADER
-    LOADER --> MODEL
-    MODEL --> RENDER
-    TEMPL --> RENDER
-    end
-
-    subgraph Vystup
-    SV_CODE[SystemVerilog UVM Files]
-    end
-
-    RENDER --> SV_CODE
-```
-
-## Viac detailne
-
-```mermaid
-flowchart
-subgraph Input Files
-    config_uvm
-    config_dut
-end
-
-    config_uvm --> UVMConfiguration
-    config_dut --> DUTConfiguration
-
-subgraph ConfigLoader
-    DUTConfiguration
-    UVMConfiguration
-end
-
-ModelBuilder
-
-
-main
-
-```
-
-**Env -> Agent -> (Driver, Monitor, Sequencer)**
-
-#### PyObjects representation
-
-```mermaid
 flowchart TD
-uvm_component:config_defined
+    %% Styling
+    classDef logic fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef data fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef artifact fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
+    subgraph Inputs [Inputs]
+        direction TB
+        DUT_CFG[config_dut.yaml]:::file
+        UVM_CFG[config_uvm.yaml]:::file
+    end
 
-uvm_agent:template_defined --> uvm_component:config_defined
-uvm_driver:template_defined--> uvm_component:config_defined
-uvm_sequencer:template_defined--> uvm_component:config_defined
-uvm_monitor:template_defined--> uvm_component:config_defined
+    subgraph Phase1 [Configuration Loading]
+        Loader[Config Loader]:::logic
+        DUT_OBJ(DUTConfiguration):::data
+        UVM_OBJ(UVMConfiguration):::data
+    end
 
+    subgraph Phase2 [Internal Representation]
+        Builder[Model Builder]:::logic
+
+        subgraph EnvModel [EnvModel Container]
+            direction TB
+            Ag[Agents]:::data
+            If[Interface]:::data
+            Tr[Transaction]:::data
+            Sc[Scoreboard]:::data
+            Seq[Sequences]:::data
+        end
+    end
+
+    subgraph Phase3 [Code Generation]
+        Generator[UVM Generator]:::logic
+        Renderer[Jinja2 Renderer]:::logic
+        Writer[File Writer]:::logic
+        Templates[Templates .j2]:::file
+    end
+
+    subgraph Outputs [Generated TB]
+        SV_FILES[SystemVerilog Files\n.sv]:::artifact
+    end
+
+    %% Connections
+    DUT_CFG --> Loader
+    UVM_CFG --> Loader
+
+    Loader --> DUT_OBJ
+    Loader --> UVM_OBJ
+
+    DUT_OBJ --> Builder
+    UVM_OBJ --> Builder
+
+    Builder --> EnvModel
+
+    EnvModel ==> Generator
+
+    Templates -.-> Renderer
+    Generator --> Renderer
+    Renderer --> Writer
+    Writer --> Outputs
 ```
-
-```
-class EnvModel:
-    agents: List[AgentModel]
-
-    def __init__(self, name, agents):
-        self.name = name
-        self.agents = [Agent(a["name"], a["type"], a.get("active", True)) for a in agents]
-
-class Agent:
-    driver: DriverModel
-    monitor: MonitorModel
-    sequencer: SequencerModel
-
-    def __init__(self, name, agent_type, active):
-        self.name = name
-        self.type = agent_type
-        self.active = active
-```
-
-EnvModel
-└── AgentModel (multiple)
-├── InterfaceModel
-├── DriverModel (optional - active agents only)
-├── MonitorModel
-├── SequencerModel (optional - active agents only)
-└── CoverageModel (optional)
 

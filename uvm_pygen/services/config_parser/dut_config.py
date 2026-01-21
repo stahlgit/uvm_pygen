@@ -115,7 +115,7 @@ class DUTConfiguration:
         """Get all reset ports."""
         return [p for p in self.ports if p.is_reset]
 
-    def resolve_width(self, width: Any) -> int:
+    def resolve_wiwdth(self, width: Any) -> int:
         """Resolve width - can be int or parameter reference."""
         if isinstance(width, int):
             return width

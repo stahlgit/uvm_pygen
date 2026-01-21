@@ -1,3 +1,4 @@
+from uvm_pygen.constants.uvm_enum import AgentMode
 from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.generation.file_manager import FileManager
 from uvm_pygen.services.generation.renderer import TemplateRenderer
@@ -17,9 +18,8 @@ class UVMGenerator:
 
         self.generate_transaction()
         self.generate_interface()
-        # self.generate_agents()
+        self.generate_drivers()
         # self.generate_env()
-        # ... postupne pridáme ďalšie
 
         print("\n✅ Generation complete!")
 
@@ -51,3 +51,25 @@ class UVMGenerator:
         # Pre čistotu ich dáme do koreňa 'output_dir' alebo vytvoríme zložku 'interfaces'
         filename = f"{if_model.name}.sv"
         self.writer.write(filename, content)
+
+    def generate_drivers(self):
+        """Generate Drivers for all active agents."""
+        if not self.model.agents:
+            return
+        if_name = self.model.interfaces[0].name
+        trans_type = self.model.transaction.class_name
+
+        for agent in self.model.agents:
+            if agent.active == AgentMode.PASSIVE or not agent.has_driver:
+                continue
+
+            ctx = {
+                "agent": agent,
+                "if_name": if_name,
+                "trans_type": trans_type,
+            }
+
+            content = self.renderer.render("components/driver.sv.j2", ctx)
+
+            filename = f"{agent.name.lower()}_driver.sv"
+            self.writer.write(filename, content, subdir=f"agents/{agent.name}")

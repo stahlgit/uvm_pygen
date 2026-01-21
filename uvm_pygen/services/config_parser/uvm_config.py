@@ -15,6 +15,7 @@ class UVMConfiguration:
         """Initialize UVM configuration from YAML file."""
         self.config_path = Path(config_path)
         self._raw_config: dict = {}
+        self.interface_list: list[str] = []
         self._load()
         self._parse()
 
@@ -91,7 +92,7 @@ class UVMConfiguration:
 
     def _validate_components(self, errors: list[str]) -> list[str]:
         for component in self.components:
-            if component.type == ComponentType.AGENT:
+            if ComponentType(component.type) == ComponentType.AGENT:
                 errors = self._validate_agent(component, errors)
             # in future add other component type validations as needed
         return errors
@@ -100,15 +101,21 @@ class UVMConfiguration:
         if not component.interface:
             errors.append(f"Agent '{component.name}' must have an associated interface.")
 
-        if component.mode == AgentMode.ACTIVE:
-            driver = component.subcomponents.get(ComponentType.DRIVER)
-            if not driver or not driver.get("enabled", False):
-                errors.append(f"Active agent '{component.name}' must have an enabled driver component.")
+        self.interface_list.append(component.interface)  # Collect interface names
 
-            sequencer = component.subcomponents.get(ComponentType.SEQUENCER)
-            if not sequencer or not sequencer.get("enabled", False):
-                errors.append(f"Active agent '{component.name}' must have an enabled sequencer component.")
+        if AgentMode(component.mode) == AgentMode.ACTIVE:
+            self._ensure_subcomponent_enabled(component, ComponentType.DRIVER, errors)
+            self._ensure_subcomponent_enabled(component, ComponentType.SEQUENCER, errors)
         return errors
+
+    def _ensure_subcomponent_enabled(self, parent: Component, sub_type: ComponentType, errors: list[str]) -> None:
+        """Helper to check if a specific subcomponent exists and is enabled."""
+        sub = parent.subcomponents.get(sub_type)
+
+        # Check if sub is None OR if 'enabled' is False
+        if not sub or not sub.get("enabled", False):
+            # Using sub_type.name or str(sub_type) makes the error message dynamic
+            errors.append(f"Active agent '{parent.name}' must have an enabled {sub_type.name.lower()} component.")
 
     def _validate_sequences(self, errors: list[str]) -> list[str]:
         seq_names = {s.name for s in self.sequences}

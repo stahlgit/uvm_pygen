@@ -13,16 +13,26 @@ class AgentMode(StrEnum):
 
 
 class ComponentType(StrEnum):
-    """Defines the type of UVM component."""
-
     AGENT = auto()
     DRIVER = auto()
     MONITOR = auto()
     SEQUENCER = auto()
-    # Add other types as needed (e.g., ENV, TEST, SCOREBOARD)
+    SCOREBOARD = auto()
 
+    @classmethod
+    def _missing_(cls, value):
+        """Hook called when ComponentType('unknown_string') is called and normalizes the input.
 
-# --- Port/Signal Enums (Often used in both DUT and UVM configs) ---
+        Purpose:
+        - Allow both "agent" and "uvm_agent" to be valid inputs for ComponentType.AGENT
+        """
+        if isinstance(value, str):
+            clean_value = value.lower().removeprefix("uvm_").upper()
+
+            if clean_value in cls._member_map_:
+                return cls[clean_value.upper()]
+
+        return super()._missing_(value)
 
 
 class Direction(StrEnum):

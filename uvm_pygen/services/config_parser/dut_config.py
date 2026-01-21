@@ -173,8 +173,8 @@ class DUTConfiguration:
         # Ports
         self.ports = []
         for port in self._raw_config.get("ports", []):
-            if "enum_type" in port:
-                port["enum_type"] = port.pop("enum_type")
+            if "enum_def" in port:
+                port["enum_def"] = port.pop("enum_def")
             self.ports.append(Port(**port))
 
         # Operations behavior

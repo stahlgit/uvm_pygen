@@ -18,7 +18,7 @@ class ConfigLoader:
         self.dut = DUTConfiguration(dut_config_path)
 
         print(f"Loading UVM config: {uvm_config_path}")
-        self.uvm = UVMConfiguration(uvm_config_path, self.dut)
+        self.uvm = UVMConfiguration(uvm_config_path)
 
         print("✓ Configuration loaded successfully")
 
@@ -26,10 +26,7 @@ class ConfigLoader:
         """Validate configuration consistency."""
         print("Validating configurations...")
 
-        dut_errors = self.dut.validate()
-
-        uvm_errors = []
-        all_errors = dut_errors + uvm_errors
+        all_errors: list[str] | None = self.dut.validate().append(self.uvm.validate())
         if all_errors:
             print("❌ Validation errors:")
             for err in all_errors:
@@ -66,6 +63,5 @@ class ConfigLoader:
         print(f"\nUVM Environment: {self.uvm.env_name}")
         print(f"  Components: {len(self.uvm.components)}")
         print(f"  Sequences: {len(self.uvm.sequences)}")
-        print(f"  Tests: {len(self.uvm.tests)}")
 
         print("=" * 60 + "\n")

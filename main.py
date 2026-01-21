@@ -14,74 +14,29 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Print summary
-    loader.summary()
+    # loader.summary()
 
     ### PHASE 2 : BUILD ENVIRONMENT MODEL ###
     builder = ModelBuilder(loader)
-
-    """
-    env_model = EnvModel.create_from_configs(loader.dut, loader.uvm)
-
-    # 4. Display environment model summary (includes agents)
+    env_model = builder.build()
     print("\n" + "=" * 70)
-    print("ENVIRONMENT MODEL WITH AGENTS")
-    print("=" * 70)
-    loader.env_model.summary()
-
-    # 5. Test individual agent access
-    print("\n" + "=" * 70)
-    print("AGENT ACCESS TEST")
+    print("INTERNAL MODEL SUMMARY")
     print("=" * 70)
 
-    alu_agent = loader.env_model.get_agent("alu_agent")
-    if alu_agent:
-        print(f"\n✓ Found agent: {alu_agent.name}")
-        print(f"  Mode: {alu_agent.mode}")
-        print(f"  Active: {alu_agent.is_active()}")
-        print(f"  Interface ports: {len(alu_agent.get_all_ports())}")
-        print(f"  Enum types: {list(alu_agent.get_enum_types().keys())}")
+    print(f"Transaction: {env_model.transaction.class_name}")
+    print(f"  - Variables: {[v.name for v in env_model.transaction.variables]}")
 
-        if alu_agent.driver:
-            print("\n  Driver:")
-            print(f"    Name: {alu_agent.driver.name}")
-            print(f"    Driven ports: {[p.name for p in alu_agent.driver.driven_ports]}")
+    print(f"\nInterface: {env_model.interfaces[0].name}")
+    print(f"  - Ports: {len(env_model.interfaces[0].ports)}")
 
-        if alu_agent.monitor:
-            print("\n  Monitor:")
-            print(f"    Name: {alu_agent.monitor.name}")
-            print(f"    Monitored ports: {[p.name for p in alu_agent.monitor.monitored_ports]}")
+    print(f"\nAgents: {len(env_model.agents)}")
+    for agent in env_model.agents:
+        print(f"  - {agent.name} ({agent.active})")
 
-        if alu_agent.sequencer:
-            print("\n  Sequencer:")
-            print(f"    Name: {alu_agent.sequencer.name}")
-            print(f"    Transaction type: {alu_agent.sequencer.transaction_type}")
+    if env_model.scoreboard:
+        print(f"\nScoreboard: {env_model.scoreboard.name}")
+        print(f"  - Exports: {env_model.scoreboard.analysis_exports}")
 
-    output_agent = loader.env_model.get_agent("output_agent")
-    if output_agent:
-        print(f"\n✓ Found agent: {output_agent.name}")
-        print(f"  Mode: {output_agent.mode}")
-        print(f"  Active: {output_agent.is_active()}")
-        print(f"  Interface direction: {output_agent.interface.direction}")
-        print(f"  Has driver: {output_agent.driver is not None}")
-        print(f"  Has monitor: {output_agent.monitor is not None}")
-
-    # 6. Test agent filtering
-    print("\n" + "=" * 70)
-    print("AGENT FILTERING TEST")
-    print("=" * 70)
-
-    active_agents = loader.env_model.get_active_agents()
-    passive_agents = loader.env_model.get_passive_agents()
-
-    print(f"\nActive agents ({len(active_agents)}):")
-    for agent in active_agents:
-        print(f"  - {agent.name}")
-
-    print(f"\nPassive agents ({len(passive_agents)}):")
-    for agent in passive_agents:
-        print(f"  - {agent.name}")
-
-    print("\n" + "=" * 70)
-    print("✓ Agent model test completed successfully!")
-    print("=" * 70)
-    """
+    print(f"\nSequences: {len(env_model.sequences)}")
+    for seq in env_model.sequences:
+        print(f"  - {seq.name} (Base: {seq.base_class})")

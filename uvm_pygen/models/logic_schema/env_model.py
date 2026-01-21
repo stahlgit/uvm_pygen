@@ -1,0 +1,43 @@
+"""Models representing the environment structure for UVM testbench generation."""
+
+from dataclasses import dataclass
+
+from uvm_pygen.constants.uvm_enum import AgentMode
+from uvm_pygen.models.config_schema.dut_dataclass import Port
+from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
+from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
+from uvm_pygen.models.logic_schema.transaction_model import TransactionModel
+
+
+@dataclass
+class InterfaceModel:
+    """Representing SystemVerilog interface (alu_if.sv)."""
+
+    name: str
+    ports: list[Port]  # Tu už máme skutočné objekty portov, nie len mená
+    clock: Port | None
+    reset: Port | None
+
+
+@dataclass
+class AgentModel:
+    """Representing configured agent (ready for rendering)."""
+
+    name: str
+    active: AgentMode
+    interface_instance: InterfaceModel  # Odkaz na interface
+    has_driver: bool
+    has_monitor: bool
+    # Tu už budeme mať vyriešené, ktoré porty tento agent ovláda
+
+
+@dataclass
+class EnvModel:
+    """Complete model for rendering."""
+
+    agents: list[AgentModel]
+    interfaces: list[InterfaceModel]
+    scoreboard: ScoreboardModel | None
+    sequences: list[SequenceModel]
+    transaction: TransactionModel
+    dut_instance_name: str = "dut_inst"

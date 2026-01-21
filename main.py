@@ -1,6 +1,6 @@
 import sys
 
-from uvm_pygen.services.loader import ConfigLoader
+from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
 
 if __name__ == "__main__":

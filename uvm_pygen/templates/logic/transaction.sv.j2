@@ -1,0 +1,34 @@
+//------------------------------------------------------------------------------
+// Class: {{ trans.class_name }}
+// Description: Generated Transaction Object
+//------------------------------------------------------------------------------
+
+class {{ trans.class_name }} extends uvm_sequence_item;
+
+    // Variables
+    {% for var in trans.variables %}
+    {% if var.is_rand %}rand {% endif %}{{ var.sv_type }} {{ var.name }};
+    {% endfor %}
+
+    // Constraints
+    {% for const in trans.constraints %}
+    constraint {{ const.name }} {
+        {% for line in const.body %}
+        {{ line }};
+        {% endfor %}
+    }
+    {% endfor %}
+
+    // UVM Macros
+    `uvm_object_utils_begin({{ trans.class_name }})
+        {% for var in trans.variables %}
+        `uvm_field_int({{ var.name }}, UVM_ALL_ON)
+        {% endfor %}
+    `uvm_object_utils_end
+
+    // Constructor
+    function new(string name = "{{ trans.class_name }}");
+        super.new(name);
+    endfunction
+
+endclass : {{ trans.class_name }}

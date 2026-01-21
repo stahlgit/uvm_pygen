@@ -5,3 +5,7 @@ __pycache__/
 
 .vscode/
 .mypy_cache/
+
+#uvm generated files
+my_tb_verif/
+*.sv

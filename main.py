@@ -1,6 +1,7 @@
 import sys
 
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
+from uvm_pygen.services.generation.uvm_generator import UVMGenerator
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
 
 if __name__ == "__main__":
@@ -40,3 +41,6 @@ if __name__ == "__main__":
     print(f"\nSequences: {len(env_model.sequences)}")
     for seq in env_model.sequences:
         print(f"  - {seq.name} (Base: {seq.base_class})")
+
+    generator = UVMGenerator(env_model, output_dir="my_tb_verif")
+    generator.generate_all()

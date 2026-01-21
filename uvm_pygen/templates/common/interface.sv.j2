@@ -1,0 +1,27 @@
+//------------------------------------------------------------------------------
+// Interface: {{ if_model.name }}
+// Description: Physical interface for DUT signals
+//------------------------------------------------------------------------------
+
+interface {{ if_model.name }}(
+    input logic {{ if_model.clock.name if if_model.clock else 'clk' }},
+    input logic {{ if_model.reset.name if if_model.reset else 'rst' }}
+);
+
+    //--------------------------------------------------------------------------
+    // Signals
+    //--------------------------------------------------------------------------
+    {% for port in if_model.ports %}
+    {% if port.width and port.width > 1 %}
+    logic [{{ port.width - 1 }}:0] {{ port.name }};
+    {% else %}
+    logic {{ port.name }};
+    {% endif %}
+    {% endfor %}
+
+    //--------------------------------------------------------------------------
+    // Modports (Optional but recommended)
+    //--------------------------------------------------------------------------
+    // TODO: Generate modports based on agent types (Driver/Monitor)
+
+endinterface : {{ if_model.name }}

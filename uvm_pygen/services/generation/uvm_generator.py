@@ -26,29 +26,23 @@ class UVMGenerator:
     def generate_transaction(self):
         """Generate Sequence Item."""
         # Do šablóny môžeme poslať celý objekt 'transaction'
-        ctx = {
-            "trans": self.model.transaction,
-            "project_name": "uvm_project",  # alebo z configu
-        }
 
-        content = self.renderer.render("logic/transaction.sv.j2", ctx)
+        content = self.renderer.render(
+            "logic/transaction.sv.j2", {"trans": self.model.transaction, "project_name": self.model.project_name}
+        )
 
         filename = f"{self.model.transaction.class_name.lower()}.sv"
         self.writer.write(filename, content, subdir="objects")
 
     def generate_interface(self):
         """Generate SystemVerilog Interface."""
-        # Predpokladáme, že generujeme interface pre prvý model v zozname (pre ALU máme 1)
         if not self.model.interfaces:
             return
 
         if_model = self.model.interfaces[0]
 
-        ctx = {"if_model": if_model}
+        content = self.renderer.render("common/interface.sv.j2", {"if_model": if_model})
 
-        content = self.renderer.render("common/interface.sv.j2", ctx)
-
-        # Pre čistotu ich dáme do koreňa 'output_dir' alebo vytvoríme zložku 'interfaces'
         filename = f"{if_model.name}.sv"
         self.writer.write(filename, content)
 
@@ -63,13 +57,14 @@ class UVMGenerator:
             if agent.active == AgentMode.PASSIVE or not agent.has_driver:
                 continue
 
-            ctx = {
-                "agent": agent,
-                "if_name": if_name,
-                "trans_type": trans_type,
-            }
-
-            content = self.renderer.render("components/driver.sv.j2", ctx)
+            content = self.renderer.render(
+                "components/driver.sv.j2",
+                {
+                    "agent": agent,
+                    "if_name": if_name,
+                    "trans_type": trans_type,
+                },
+            )
 
             filename = f"{agent.name.lower()}_driver.sv"
             self.writer.write(filename, content, subdir=f"agents/{agent.name}")

@@ -17,6 +17,30 @@ class ModelBuilder:
         """Initialize with DUT and UVM configurations."""
         self.loader = loader
 
+    def summary(self, env_model: EnvModel) -> None:
+        """Prints a summary of the constructed Environment Model."""
+        print("\n" + "=" * 70)
+        print("INTERNAL MODEL SUMMARY")
+        print("=" * 70)
+
+        print(f"Transaction: {env_model.transaction.class_name}")
+        print(f"  - Variables: {[v.name for v in env_model.transaction.variables]}")
+
+        print(f"\nInterface: {env_model.interfaces[0].name}")
+        print(f"  - Ports: {len(env_model.interfaces[0].ports)}")
+
+        print(f"\nAgents: {len(env_model.agents)}")
+        for agent in env_model.agents:
+            print(f"  - {agent.name} ({agent.active})")
+
+        if env_model.scoreboard:
+            print(f"\nScoreboard: {env_model.scoreboard.name}")
+            print(f"  - Exports: {env_model.scoreboard.analysis_exports}")
+
+        print(f"\nSequences: {len(env_model.sequences)}")
+        for seq in env_model.sequences:
+            print(f"  - {seq.name} (Base: {seq.base_class})")
+
     def build(self) -> EnvModel:
         """Constructs the complete Environment Model."""
         print("Building Logic Models...")
@@ -72,6 +96,7 @@ class ModelBuilder:
         sequence_models = self._build_sequences()
 
         return EnvModel(
+            project_name=self.loader.uvm.project_name,  # TODO: this here or higher ? nothing is higher right now
             agents=agents,
             interfaces=[main_interface],
             scoreboard=scoreboard_model,
@@ -83,8 +108,6 @@ class ModelBuilder:
         """Vytvorí model transakcie spojením DUT portov a UVM nastavení."""
         variables = []
 
-        # 1. Zozbieraj porty, ktoré chceme v transakcii
-        # Zvyčajne: Control + Data Inputs + Outputs (ak chceme self-checking transakciu)
         target_ports = (
             self.loader.dut.get_control_ports()
             + self.loader.dut.get_data_input_ports()
@@ -95,24 +118,19 @@ class ModelBuilder:
             # A. Rozhodni o Type (Logic vector vs Enum)
             sv_type = "logic"
 
-            if port.enum_def:
-                # Ak je port prepojený na enum, použi názov enumu (napr. "operation_t")
+            if port.enum_def:  # use enum name
                 sv_type = port.enum_name
             else:
-                # Inak vypočítaj šírku zbernice
                 width = self.loader.dut.resolve_width(port.width)
                 if width > 1:
                     sv_type = f"logic [{width - 1}:0]"
-                else:
-                    sv_type = "logic"
 
             # B. Rozhodni o Randomizácii (Check overrides)
             is_rand = True
             default_val = None
 
-            # C. Vytvor premennú
             var = SvVariable(
-                name=port.name.lower(),  # SV konvencia: premenné lowercase
+                name=port.name.lower(),  # SV convention : lower
                 sv_type=sv_type,
                 is_rand=is_rand,
                 default_value=default_val,
@@ -120,12 +138,11 @@ class ModelBuilder:
             )
             variables.append(var)
 
-        # 2. Vytvor model
         return TransactionModel(
             class_name=self.loader.uvm.transaction_name,
             variables=variables,
-            constraints=[],  # Constraints poriešime v ďalšom kroku
-            macros=[v.name for v in variables],  # Pre field automation macros
+            constraints=[],
+            macros=[v.name for v in variables],  # for field automation macros
         )
 
     def _build_scoreboard_model(self) -> ScoreboardModel:
@@ -134,7 +151,6 @@ class ModelBuilder:
         exports = []
         for comp in self.loader.uvm.components:
             if ComponentType.MONITOR in comp.subcomponents:
-                # Názov exportu zvyčajne odvodíme od názvu agenta
                 exports.append(f"{comp.name}_export")
 
         return ScoreboardModel(
@@ -146,13 +162,12 @@ class ModelBuilder:
     def _build_sequences(self) -> list[SequenceModel]:
         seq_models = []
         for seq_cfg in self.loader.uvm.sequences:
-            # 1. Spracuj constraints
+
             sv_constraints = []
             if seq_cfg.constraints:
                 # Jednoduchý wrapper, v budúcnosti sem môže ísť parser syntaxe
                 sv_constraints.append(SvConstraint(name=f"{seq_cfg.name}_c", body=seq_cfg.constraints))
 
-            # 2. Vytvor Model
             model = SequenceModel(
                 name=seq_cfg.name,
                 base_class=seq_cfg.extends if seq_cfg.extends else "uvm_sequence",

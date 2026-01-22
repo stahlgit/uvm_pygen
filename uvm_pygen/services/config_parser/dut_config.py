@@ -106,16 +106,16 @@ class DUTConfiguration:
     def get_ports_by_group(self, group: str) -> list[Port]:
         """Get ports by group name."""
         return [p for p in self.ports if p.group and p.group.lower() == group.lower()]
-    
+
     def get_clock_ports(self) -> list[Port]:
         """Get all clock ports."""
         return [p for p in self.ports if p.is_clock]
-    
+
     def get_reset_ports(self) -> list[Port]:
         """Get all reset ports."""
         return [p for p in self.ports if p.is_reset]
 
-    def resolve_wiwdth(self, width: Any) -> int:
+    def resolve_width(self, width: Any) -> int:
         """Resolve width - can be int or parameter reference."""
         if isinstance(width, int):
             return width

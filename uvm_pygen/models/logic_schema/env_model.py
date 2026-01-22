@@ -35,6 +35,7 @@ class AgentModel:
 class EnvModel:
     """Complete model for rendering."""
 
+    project_name: str 
     agents: list[AgentModel]
     interfaces: list[InterfaceModel]
     scoreboard: ScoreboardModel | None

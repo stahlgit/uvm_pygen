@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
-from uvm_pygen.models.config_schema.uvm_dataclass import Component, Sequence, Test, TransactionField
+from uvm_pygen.models.config_schema.uvm_dataclass import Component, Sequence, TransactionField
 
 
 class UVMConfiguration:
@@ -73,21 +73,15 @@ class UVMConfiguration:
             list[str]: A list of error messages.
         """
         errors = []
-        self._validate_components(errors)
-        self._validate_sequences(errors)
+        errors.extend(self._validate_components(errors))
+        errors.extend(self._validate_sequences(errors))
+        return errors
 
     def get_sequence(self, seq_name: str) -> Sequence | None:
         """Get sequence by name."""
         for seq in self.sequences:
             if seq.name == seq_name:
                 return seq
-        return None
-
-    def get_test(self, test_name: str) -> Test | None:
-        """Get test by name."""
-        for test in self.tests:
-            if test.name == test_name:
-                return test
         return None
 
     def _validate_components(self, errors: list[str]) -> list[str]:

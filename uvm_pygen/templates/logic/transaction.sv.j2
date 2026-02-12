@@ -7,7 +7,7 @@ class {{ trans.class_name }} extends uvm_sequence_item;
 
     // Variables
     {% for var in trans.variables %}
-    {% if var.is_rand %}rand {% endif %}{{ var.sv_type }} {{ var.name }};
+    {% if var.is_rand %}    rand {% endif %}{{ var.sv_type }} {{ var.name }};
     {% endfor %}
 
     // Constraints
@@ -30,5 +30,49 @@ class {{ trans.class_name }} extends uvm_sequence_item;
     function new(string name = "{{ trans.class_name }}");
         super.new(name);
     endfunction
+
+    // should i do do_copy, do_compare, do_print ?
+    function void do_copy (uvm_object rhs);
+        {{ trans.class_name}} rhs_;
+
+        if( !$cast(rhs_, rhs) ) begin
+            `uvm_fatal( "do_copy:", "Failed to cast transaction object." )
+            return;
+        end
+
+        super.do_copy( rhs );
+        {% for var in trans.variables %}
+        {{var.name}} = rhs_.{{var.name}};
+        {% endfor %}
+    endfunction: do_copy
+
+
+
+    // Convert to String
+    function string convert2string();
+        string s;
+        s = $sformatf("\n-------------------------------------------------\n");
+        s = {s, $sformatf("Transaction: %s\n", get_name())};
+        
+        // Logic/Integer signals use 'h%0h (Hex) or 'd%0d (Decimal)
+        s = {s, $sformatf("  act: \t'h%0h\n", act)}; 
+        
+        // Enums use %s and the .name() method
+        s = {s, $sformatf("  op: \t%s\n", op.name())};
+        s = {s, $sformatf("  movi: \t%s\n", movi.name())};
+        
+        // Data vectors usually look best in Hex
+        s = {s, $sformatf("  reg_a: \t'h%0h\n", reg_a)};
+        s = {s, $sformatf("  reg_b: \t'h%0h\n", reg_b)};
+        s = {s, $sformatf("  mem: \t'h%0h\n", mem)};
+        s = {s, $sformatf("  imm: \t'h%0h\n", imm)};
+        
+        // Control signals
+        s = {s, $sformatf("  ex_alu_vld: \t'h%0h\n", ex_alu_vld)};
+        s = {s, $sformatf("  ex_alu: \t'h%0h\n", ex_alu)};
+        
+        s = {s, "-------------------------------------------------\n"};
+        return s;
+    endfunction : convert2string
 
 endclass : {{ trans.class_name }}

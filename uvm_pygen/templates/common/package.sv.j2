@@ -1,0 +1,34 @@
+//------------------------------------------------------------------------------
+// Package: {{ agent.name }}_pkg
+// Description: Package for {{ agent.name }} components
+//------------------------------------------------------------------------------
+
+package {{ agent.name }}_pkg;
+
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Import project parameters if generated
+    // import {{ project_name | replace(" ", "_") | lower }}_params_pkg::*;
+
+    //--------------------------------------------------------------------------
+    // Class Definitions
+    //--------------------------------------------------------------------------
+    
+    // Transaction
+    // Assuming transaction is generated in 'objects/' folder (../../objects)
+    `include "../../objects/{{ trans_type | lower }}.sv"
+
+    // Monitor (Always present)
+    `include "{{ agent.name }}_monitor.sv"
+
+    {% if agent.mode == 'active' %}
+    // Active Components
+    `include "{{ agent.name }}_sequencer.sv"
+    `include "{{ agent.name }}_driver.sv"
+    {% endif %}
+
+    // Agent Class
+    `include "{{ agent.name }}_agent.sv"
+
+endpackage : {{ agent.name }}_pkg

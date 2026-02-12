@@ -1,0 +1,14 @@
+//------------------------------------------------------------------------------
+// Class: {{ agent.name }}_sequencer
+// Description: Sequencer for {{ agent.name }}
+//------------------------------------------------------------------------------
+
+class {{ agent.name }}_sequencer extends uvm_sequencer #({{ trans_type }});
+    `uvm_component_utils({{ agent.name }}_sequencer)
+
+    // Constructor
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction: new
+
+endclass : {{ agent.name }}_sequencer

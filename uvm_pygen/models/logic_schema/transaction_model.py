@@ -10,6 +10,7 @@ class SvVariable:
     is_rand: bool  # Pridá kľúčové slovo "rand"
     default_value: str | None = None  # Napr. "0" alebo "ADD"
     comment: str = ""
+    #TODO: is_enum ?
 
 
 @dataclass

@@ -1,0 +1,51 @@
+//------------------------------------------------------------------------------
+// Class: {{ agent.name }}_monitor
+// Description: Monitor for {{ agent.name }}
+//------------------------------------------------------------------------------
+
+class {{ agent.name }}_monitor extends uvm_monitor;
+    `uvm_component_utils({{ agent.name }}_monitor)
+
+    // Virtual Interface
+    virtual {{ if_name }} vif;
+
+    // Analysis Port
+    uvm_analysis_port #({{ trans_type }}) analysis_port;
+
+    // Constructor
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    // Build Phase
+    function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+        analysis_port = new("analysis_port", this);
+
+        // Get interface
+        if(!uvm_config_db#(virtual {{ if_name }})::get(this, "", "vif", vif)) begin
+            `uvm_fatal("NOVIF", {"Virtual interface must be set for: ", get_full_name(), ".vif"});
+        end
+    endfunction
+
+    // Run Phase
+    task run_phase(uvm_phase phase);
+        {{ trans_type }} item;
+        
+        // Wait for reset/clock
+        // @(posedge vif.CLK); // TODO: Use clock from interface config
+
+        forever begin
+            item = {{ trans_type }}::type_id::create("item");
+            
+            // TODO: Add Logic based on 'config_dut.yaml'
+            // Example:
+            // @(posedge vif.CLK);
+            // if (vif.monitor_cb.valid) begin
+            //    item.data = vif.monitor_cb.data;
+            //    analysis_port.write(item);
+            // end
+        end
+    endtask
+
+endclass : {{ agent.name }}_monitor

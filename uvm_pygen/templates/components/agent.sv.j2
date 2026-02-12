@@ -1,0 +1,63 @@
+//------------------------------------------------------------------------------
+// Class: {{ agent.name }}
+// Description: Agent container for {{ agent.name }}
+// Mode: {{ agent.mode }}
+//------------------------------------------------------------------------------
+
+class {{ agent.name }} extends uvm_agent;
+    `uvm_component_utils({{ agent.name }})
+
+    // Components
+    {{ agent.name }}_monitor   monitor;
+    {% if agent.mode == 'active' %}
+    {{ agent.name }}_driver    driver;
+    {{ agent.name }}_sequencer sequencer;
+    {% endif %}
+
+    // Analysis Port (Pass-through from Monitor)
+    uvm_analysis_port #({{ trans_type }}) analysis_port;
+
+    // Constructor
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    // Build Phase
+    function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+
+        monitor = {{ agent.name }}_monitor::type_id::create("monitor", this);
+
+        {% if agent.mode == 'active' %}
+        driver    = {{ agent.name }}_driver::type_id::create("driver", this);
+        sequencer = {{ agent.name }}_sequencer::type_id::create("sequencer", this);
+        {% endif %}
+    endfunction
+
+    // Connect Phase
+    function void connect_phase(uvm_phase phase);
+        virtual {{ if_name }} vif;
+
+        super.connect_phase(phase);
+
+        // Retrieve VIF from Config DB to pass to sub-components
+        if (!uvm_config_db#(virtual {{ if_name }})::get(this, "", "vif", vif)) begin
+            `uvm_fatal("NOVIF", "Virtual interface not found in Agent config_db")
+        end
+
+        // Connect Monitor VIF
+        monitor.vif = vif;
+        
+        // Connect Analysis Port
+        analysis_port = monitor.analysis_port;
+
+        {% if agent.mode == 'active' %}
+        // Connect Driver VIF
+        driver.vif = vif;
+        
+        // Connect Driver and Sequencer
+        driver.seq_item_port.connect(sequencer.seq_item_export);
+        {% endif %}
+    endfunction
+
+endclass : {{ agent.name }}

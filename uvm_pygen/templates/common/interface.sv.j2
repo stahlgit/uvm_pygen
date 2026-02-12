@@ -1,12 +1,14 @@
 //------------------------------------------------------------------------------
 // Interface: {{ if_model.name }}
-// Description: Physical interface for DUT signals
+// Description: Physical interface with Clocking Blocks and Methods
 //------------------------------------------------------------------------------
 
 interface {{ if_model.name }}(
-    input logic {{ if_model.clock.name if if_model.clock else 'clk' }},
-    input logic {{ if_model.reset.name if if_model.reset else 'rst' }}
+    input logic {{ if_model.clock.name if if_model.clock else 'CLK' }},
+    input logic {{ if_model.reset.name if if_model.reset else 'RST' }}
 );
+
+    import {{ if_model.agent_name }}_pkg::*; // Import agent package for Transaction definition
 
     //--------------------------------------------------------------------------
     // Signals
@@ -20,8 +22,70 @@ interface {{ if_model.name }}(
     {% endfor %}
 
     //--------------------------------------------------------------------------
-    // Modports (Optional but recommended)
+    // Clocking Blocks
     //--------------------------------------------------------------------------
-    // TODO: Generate modports based on agent types (Driver/Monitor)
+    
+    // Driver Clocking Block (Synchronous Drive)
+    clocking cb @(posedge {{ if_model.clock.name if if_model.clock else 'CLK' }});
+        default input #1step output #1step;
+        {% for port in if_model.ports %}
+        {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
+        {% if port.direction == 'input' %}
+        output {{ port.name }}; 
+        {% else %}
+        input  {{ port.name }}; 
+        {% endif %}
+        {% endfor %}
+    endclocking
+
+    // Monitor Clocking Block (Passive Sampling)
+    clocking cbm @(posedge {{ if_model.clock.name if if_model.clock else 'CLK' }});
+        default input #1step output #1step;
+        {% for port in if_model.ports %}
+        {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
+        input {{ port.name }}; 
+        {% endfor %}
+    endclocking
+
+    //--------------------------------------------------------------------------
+    // Methods
+    //--------------------------------------------------------------------------
+
+    // Drive Task: Pushes transaction fields to interface
+    task automatic drive({{ trans_type }} t);
+        // Assign transaction variables to clocking block outputs
+        {% for var in trans.variables %}
+        {% for port in if_model.ports if port.direction == 'input' %}
+        {% if var.name|upper == port.name|upper %}
+        cb.{{ port.name }} <= t.{{ var.name }};
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+    endtask
+
+    // Monitor Task: Captures interface signals into transaction
+    task automatic monitor({{ trans_type }} t);
+        {% for var in trans.variables %}
+        {% for port in if_model.ports %}
+        {% if var.name|upper == port.name|upper %}
+        {% if "enum" in var.sv_type or "_e" in var.sv_type %}
+        $cast(t.{{ var.name }}, int'(cbm.{{ port.name }})); // Cast for Enum
+        {% else %}
+        t.{{ var.name }} = cbm.{{ port.name }};
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+    endtask
+
+    // Utility: Wait for Clock
+    task automatic wait_for_clock(int n = 1);
+        repeat (n) @(cbm);
+    endtask
+
+    // Utility: Wait for Reset
+    task automatic wait_for_reset();
+        wait({{ if_model.reset.name if if_model.reset else 'RST' }} === {{ '0' if if_model.reset.active_low else '1' }});
+    endtask
 
 endinterface : {{ if_model.name }}

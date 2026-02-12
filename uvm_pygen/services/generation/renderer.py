@@ -12,7 +12,7 @@ class TemplateRenderer:
     def __init__(self, template_dir: str | Path = "uvm_pygen/templates") -> None:
         """Initialize the Jinja2 environment with the specified template directory."""
         self.env = Environment(
-            loader=FileSystemLoader(template_dir), trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True
+            loader=FileSystemLoader(template_dir), trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True, extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"]
         )
 
         # Môžeš pridať custom filtre, ak budeš potrebovať

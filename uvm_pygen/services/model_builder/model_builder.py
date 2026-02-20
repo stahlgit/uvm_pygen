@@ -103,6 +103,9 @@ class ModelBuilder:
             scoreboard=scoreboard_model,
             transaction=transaction_model,
             sequences=sequence_models,
+            parameters=self.loader.dut.parameters,
+            enums=self.loader.dut.enums,
+            dut_instance_name=self.loader.dut.dut_info.name
         )
 
     def _build_transaction_model(self) -> TransactionModel:

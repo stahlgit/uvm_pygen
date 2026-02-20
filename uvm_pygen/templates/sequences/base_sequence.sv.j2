@@ -1,0 +1,22 @@
+//------------------------------------------------------------------------------
+// Class: base_sequence
+// Description: Base sequence for all test sequences
+//------------------------------------------------------------------------------
+
+class base_sequence extends uvm_sequence #({{ trans_type }});
+
+    `uvm_object_utils(base_sequence)
+
+    function new(string name = "base_sequence");
+        super.new(name);
+    endfunction
+
+    // Declare req handle
+    `uvm_declare_p_sequencer(uvm_sequencer #({{ trans_type }}))
+
+    // Body task
+    task body();
+        // To be overridden
+    endtask
+
+endclass: base_sequence

@@ -1,0 +1,18 @@
+//------------------------------------------------------------------------------
+// Class: {{ seq_name }}
+// Description: {{ seq_name }} extending base_sequence
+//------------------------------------------------------------------------------
+
+class {{ seq_name }} extends base_sequence;
+
+    `uvm_object_utils({{ seq_name }})
+
+    function new(string name = "{{ seq_name }}");
+        super.new(name);
+    endfunction
+
+    task body();
+        {{ body }}
+    endtask
+
+endclass

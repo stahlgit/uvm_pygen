@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from uvm_pygen.constants.uvm_enum import AgentMode
-from uvm_pygen.models.config_schema.dut_dataclass import Port
+from uvm_pygen.models.config_schema.dut_dataclass import EnumType, Parameter, Port
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
 from uvm_pygen.models.logic_schema.transaction_model import TransactionModel
@@ -42,4 +42,8 @@ class EnvModel:
     scoreboard: ScoreboardModel | None
     sequences: list[SequenceModel]
     transaction: TransactionModel
+    
+    parameters: list[Parameter]
+    enums: dict[str, EnumType]
+    
     dut_instance_name: str = "dut_inst"

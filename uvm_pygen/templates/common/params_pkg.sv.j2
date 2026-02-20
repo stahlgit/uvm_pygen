@@ -1,0 +1,22 @@
+//------------------------------------------------------------------------------
+// Auto‑generated parameters package for {{ dut_name }}
+//------------------------------------------------------------------------------
+
+package {{ dut_name }}_params_pkg;
+
+  // Parameters
+{% for param in parameters %}
+  parameter {{ param.name }} = {{ param.value }};{% if param.description %}  // {{ param.description }}{% endif %}{{ "\n" }}
+{% endfor %}
+
+  // Enums
+{% for enum_name, enum in enums.items() %}
+  typedef enum {{ enum.type }} {
+  {% for val in enum.values %}
+    {{ val.name }} = {{ val.value }}{% if not loop.last %},{% endif %}  // {{ val.description }}
+  {% endfor %}
+  } {{ enum_name }};
+
+{% endfor %}
+
+endpackage

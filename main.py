@@ -1,6 +1,7 @@
 """Main script to generate UVM verification environment based on configurations."""
 
 import sys
+from rich import print
 
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 from uvm_pygen.services.generation.uvm_generator import UVMGenerator

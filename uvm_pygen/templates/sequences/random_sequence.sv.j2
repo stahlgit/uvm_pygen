@@ -1,0 +1,25 @@
+//------------------------------------------------------------------------------
+// Class: random_sequence
+// Description: Generates random transactions
+//------------------------------------------------------------------------------
+
+class random_sequence extends base_sequence;
+
+    `uvm_object_utils(random_sequence)
+
+    function new(string name = "random_sequence");
+        super.new(name);
+    endfunction
+
+    task body();
+        `uvm_info(get_type_name(), "Starting random sequence", UVM_MEDIUM)
+        repeat (10) begin
+            req = {{ trans_type }}::type_id::create("req");
+            start_item(req);
+            if (!req.randomize())
+                `uvm_error(get_type_name(), "Randomization failed")
+            finish_item(req);
+        end
+    endtask
+
+endclass

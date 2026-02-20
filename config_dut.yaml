@@ -21,6 +21,10 @@ parameters:
   - name: OUTPUT_WIDTH # MULT_RESULT_WIDTH
     value: 16
     description: "Width of output (for multiplication)"
+  
+  - name: MAX_VALUE
+    value: 255 # 2^DATA_WIDTH - 1
+    description: "Maximum value for data operands (for constraints)"
 
 # ============================================================================
 # Enumerations (shared across all files)
@@ -97,7 +101,7 @@ ports:
   - name: MOVI
     direction: input
     type: logic
-    width: 2
+    width: 4
     description: "operand B selector"
     group: control
     enum_name: movi_t # could be enum_type or enum

@@ -31,7 +31,7 @@ class UVMGenerator:
     def generate_all(self):
         """Run full generation process."""
         print(f"\n🚀 Starting Code Generation for DUT: {self.model.dut_instance_name}...")
-        # print(self.model)
+        print(self.model)
 
         self.generate_params_pkg()
         self.generate_transaction()

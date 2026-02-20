@@ -1,6 +1,6 @@
 # UVM_PYGEN
 
-## Jednoduchá reprezentácia
+## Architecture Representation
 
 ```mermaid
 flowchart TD
@@ -65,3 +65,5 @@ flowchart TD
     Writer --> Outputs
 ```
 
+## User-Friendly Regeneration: Preservation of Manual Edits
+UVM_PYGEN automatically preserves manual changes made by user. No special markers or protected areas are needed.

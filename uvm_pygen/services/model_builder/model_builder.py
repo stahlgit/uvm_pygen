@@ -97,6 +97,7 @@ class ModelBuilder:
 
         return EnvModel(
             project_name=self.loader.uvm.project_name,  # TODO: this here or higher ? nothing is higher right now
+            testbench_name=self.loader.uvm.testbench_name,
             agents=agents,
             interfaces=[main_interface],
             scoreboard=scoreboard_model,

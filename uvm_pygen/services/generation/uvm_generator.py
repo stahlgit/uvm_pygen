@@ -21,10 +21,10 @@ class UVMGenerator:
         FileSpec("common/package.sv.j2",       "_agent_pkg.sv", check_attr=None),
     ]
 
-    def __init__(self, env_model: EnvModel, output_dir: str = "tb_generated"):
+    def __init__(self, env_model: EnvModel):
         self.model = env_model
         self.renderer = TemplateRenderer()
-        self.writer = FileManager(output_dir)
+        self.writer = FileManager(env_model.testbench_name)
 
     def generate_all(self):
         """Run full generation process."""
@@ -34,9 +34,32 @@ class UVMGenerator:
         self.generate_transaction()
         self.generate_interface()
         self.generate_agents_and_components()
+        self.generate_top()
         # self.generate_env()
 
         print("\n✅ Generation complete!")
+    
+    def generate_top(self):
+        """Generate top-level tesstbench module."""
+        if not self.model.interfaces:
+            print("[yellow]⚠️ No interfaces defined, skipping top-level generation.[/yellow]")
+            return
+        iface = self.model.interfaces[0]
+        
+        context = {
+            "testbench_name": self.model.testbench_name,
+            "dut_instance_name": self.model.dut_instance_name,
+            "interface": iface,
+            "agents": self.model.agents,
+            "clock": iface.clock,
+            "reset": iface.reset,
+            "ports": iface.ports,
+        }
+
+        content = self.renderer.render("common/top.sv.j2", context)
+        filename = f"{self.model.testbench_name}_top.sv"
+        self.writer.write(filename, content)
+
 
     def generate_transaction(self):
         """Generate Sequence Item."""

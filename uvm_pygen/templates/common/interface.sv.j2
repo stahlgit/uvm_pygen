@@ -10,6 +10,8 @@ interface {{ if_model.name }}(
 
     import {{ if_model.agent_name }}_pkg::*; // Import agent package for Transaction definition
 
+    //TODO: Have implicit DATA_WIDTH defined in package 
+
     //--------------------------------------------------------------------------
     // Signals
     //--------------------------------------------------------------------------
@@ -27,7 +29,7 @@ interface {{ if_model.name }}(
     
     // Driver Clocking Block (Synchronous Drive)
     clocking cb @(posedge {{ if_model.clock.name if if_model.clock else 'CLK' }});
-        default input #1step output #1step;
+        // default input #1step output #1step;
         {% for port in if_model.ports %}
         {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
         {% if port.direction == 'input' %}
@@ -40,7 +42,6 @@ interface {{ if_model.name }}(
 
     // Monitor Clocking Block (Passive Sampling)
     clocking cbm @(posedge {{ if_model.clock.name if if_model.clock else 'CLK' }});
-        default input #1step output #1step;
         {% for port in if_model.ports %}
         {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
         input {{ port.name }}; 

@@ -1,0 +1,54 @@
+//------------------------------------------------------------------------------
+// Top module: {{ testbench_name }}_top
+// Description: Testbench top with DUT and UVM harness
+//------------------------------------------------------------------------------
+
+`include "uvm_macros.svh"
+import uvm_pkg::*;
+
+// Import agent packages
+{% for agent in agents %}
+import {{ agent.name }}_agent_pkg::*;
+{% endfor %}
+
+module {{ testbench_name }}_top;
+
+  // Clock and reset signals
+  logic {{ clock.name }};
+  logic {{ reset.name }};
+
+  // Interface instance
+  {{ interface.name }} intf (
+    .{{ clock.name }}({{ clock.name }}),
+    .{{ reset.name }}({{ reset.name }})
+  );
+
+  // DUT instance
+  {{ dut_instance_name }} dut (
+    .{{ clock.name }}({{ clock.name }}),
+    .{{ reset.name }}({{ reset.name }}),
+    {% for port in ports %}
+    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %}
+    {% endfor %}
+  );
+
+  // Clock generation
+  initial begin
+    {{ clock.name }} = 0;
+    forever #5 {{ clock.name }} = ~{{ clock.name }};
+  end
+
+  // Reset generation (active {{ reset.active_level }})
+  initial begin
+    {{ reset.name }} = {% if reset.active_level == 'high' %}1{% else %}0{% endif %};
+    #20;
+    {{ reset.name }} = {% if reset.active_level == 'high' %}0{% else %}1{% endif %};
+  end
+
+  // UVM test start
+  initial begin
+    uvm_config_db #(virtual {{ interface.name }})::set(null, "*", "vif", intf);
+    run_test();
+  end
+
+endmodule

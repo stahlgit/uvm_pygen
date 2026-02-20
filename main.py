@@ -23,7 +23,7 @@ def main():
     env_model = builder.build()
 
     ### PHASE 3 : GENERATE UVM VERIFICATION ENVIRONMENT ###
-    generator = UVMGenerator(env_model, output_dir="my_tb_verif")
+    generator = UVMGenerator(env_model)
     generator.generate_all()
 
 

@@ -9,4 +9,5 @@ __pycache__/
 
 #uvm generated files
 my_tb_verif/
+alu_tb/
 *.sv

@@ -120,7 +120,7 @@ sequences:
   - name: random_sequence
     type: uvm_sequence
     extends: base_sequence
-    transaction_count: "configurable" # set via test 
+    #transaction_count: 50
     randomization: full
     description: "Fully randomized transactions"
     
@@ -128,7 +128,7 @@ sequences:
   - name: corner_case_sequence
     type: uvm_sequence
     extends: base_sequence
-    transaction_count: 50
+    # transaction_count: "configurable" # set via test
     description: "Focus on corner cases"
     constraints:
     # use corner_case from config_dut.yaml

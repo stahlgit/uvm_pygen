@@ -9,9 +9,6 @@ from uvm_pygen.services.generation.renderer import TemplateRenderer
 class UVMGenerator:
     """Main generator class orchestrating the rendering process."""
 
-    # -------------------------------------------------------------------------
-    # CONFIGURATION: Define the "Recipe" for an Agent here
-    # -------------------------------------------------------------------------
     AGENT_FILES = [
         # (Template Path, Suffix, Attribute to check on AgentModel)
         FileSpec("components/driver.sv.j2", "_driver.sv", check_attr="has_driver"),
@@ -23,7 +20,8 @@ class UVMGenerator:
         FileSpec("common/package.sv.j2", "_agent_pkg.sv", check_attr=None),
     ]
 
-    def __init__(self, env_model: EnvModel):
+    def __init__(self, env_model: EnvModel) -> None:
+        """Initialize generator with the environment model."""
         self.model = env_model
         self.renderer = TemplateRenderer()
         self.writer = FileManager(env_model.testbench_name)
@@ -102,7 +100,12 @@ class UVMGenerator:
         trans = self.model.transaction
         if_model = self.model.interfaces[0]
 
-        context = {"if_model": if_model, "trans": trans, "trans_type": trans.class_name}
+        context = {
+            "if_model": if_model,
+            "trans": trans,
+            "trans_type": trans.class_name,
+            "package_name": f"{self.model.dut_instance_name}_params_pkg",
+        }
 
         content = self.renderer.render("common/interface.sv.j2", context)
 

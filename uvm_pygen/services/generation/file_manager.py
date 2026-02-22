@@ -15,7 +15,13 @@ class FileManager:
         self._create_dir(self.output_dir)
 
     def write(self, filename: str, content: str, subdir: str | None = None) -> None:
-        """Write content to a file, optionally in a subdirectory."""
+        """Write content to a file, optionally in a subdirectory.
+
+        Args:
+            filename (str): Name of the file to write.
+            content (str): Content to write to the file.
+            subdir (str | None): Optional subdirectory within the output directory.
+        """
         target_dir = self.output_dir
         if subdir:
             target_dir = self.output_dir / subdir

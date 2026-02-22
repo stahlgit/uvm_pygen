@@ -8,18 +8,15 @@ interface {{ if_model.name }}(
     input logic {{ if_model.reset.name if if_model.reset else 'RST' }}
 );
 
-    import {{ if_model.agent_name }}_pkg::*; // Import agent package for Transaction definition
-
-    //TODO: Have implicit DATA_WIDTH defined in package 
+    import {{ package_name }}::*; // Import agent package for Transaction definition
 
     //--------------------------------------------------------------------------
     // Signals
     //--------------------------------------------------------------------------
     {% for port in if_model.ports %}
-    {% if port.width and port.width > 1 %}
-    logic [{{ port.width - 1 }}:0] {{ port.name }};
-    {% else %}
-    logic {{ port.name }};
+    {{port.type}} {{port.width}} {{port.name}};  // {{port.description}}
+    {% if port.enum_name%}
+    {{port.enum_name}} {{port.name.lower()+"_e"}};
     {% endif %}
     {% endfor %}
 
@@ -33,7 +30,10 @@ interface {{ if_model.name }}(
         {% for port in if_model.ports %}
         {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
         {% if port.direction == 'input' %}
-        output {{ port.name }}; 
+        output {{ port.name }};
+        {% if port.enum_name %}
+        output {{ port.name.lower()+"_e"}};
+        {% endif %}
         {% else %}
         input  {{ port.name }}; 
         {% endif %}
@@ -59,6 +59,9 @@ interface {{ if_model.name }}(
         {% for port in if_model.ports if port.direction == 'input' %}
         {% if var.name|upper == port.name|upper %}
         cb.{{ port.name }} <= t.{{ var.name }};
+        {% if port.enum_name %}
+        cb.{{ port.name.lower()+"_e" }} <= t.{{ var.name }};
+        {% endif %}
         {% endif %}
         {% endfor %}
         {% endfor %}
@@ -69,8 +72,8 @@ interface {{ if_model.name }}(
         {% for var in trans.variables %}
         {% for port in if_model.ports %}
         {% if var.name|upper == port.name|upper %}
-        {% if "enum" in var.sv_type or "_e" in var.sv_type %}
-        $cast(t.{{ var.name }}, int'(cbm.{{ port.name }})); // Cast for Enum
+        {% if port.enum_name %}
+        $cast(t.{{ var.name }}, int'(cbm.{{ port.name }})); 
         {% else %}
         t.{{ var.name }} = cbm.{{ port.name }};
         {% endif %}

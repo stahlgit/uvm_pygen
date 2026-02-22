@@ -115,6 +115,7 @@ class DUTConfiguration:
         """Get all reset ports."""
         return [p for p in self.ports if p.is_reset]
 
+    # No longer used but it's a good function for resolving widths in the future if we want to support more complex expressions
     def resolve_width(self, width: Any) -> int:
         """Resolve width - can be int or parameter reference."""
         if isinstance(width, int):

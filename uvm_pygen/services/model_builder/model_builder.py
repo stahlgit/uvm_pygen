@@ -61,12 +61,9 @@ class ModelBuilder:
 
         resolved_interface_ports = []
         for port in interface_ports:
-            try:
-                width_int = self.loader.dut.resolve_width(port.width)
-            except ValueError:
-                print(f"Warning: Could not resolve width for {port.name}, defaulting to 1")
-                width_int = 1
-            resolved_interface_ports.append(replace(port, width=width_int))
+            resolved_interface_ports.append(
+                replace(port, width=self._get_range_from_port(port))
+            )  # Convert to SV range string
 
         # TODO: create interfaces based on how many are defined in UVM config, right now we will create only one interface
         main_interface = InterfaceModel(
@@ -105,7 +102,7 @@ class ModelBuilder:
             sequences=sequence_models,
             parameters=self.loader.dut.parameters,
             enums=self.loader.dut.enums,
-            dut_instance_name=self.loader.dut.dut_info.name
+            dut_instance_name=self.loader.dut.dut_info.name,
         )
 
     def _build_transaction_model(self) -> TransactionModel:
@@ -120,14 +117,7 @@ class ModelBuilder:
 
         for port in target_ports:
             # A. Rozhodni o Type (Logic vector vs Enum)
-            sv_type = "logic"
-
-            if port.enum_def:  # use enum name
-                sv_type = port.enum_name
-            else:
-                width = self.loader.dut.resolve_width(port.width)
-                if width > 1:
-                    sv_type = f"logic [{width - 1}:0]"
+            sv_type = self._get_sv_type_from_port(port)
 
             # B. Rozhodni o Randomizácii (Check overrides)
             is_rand = True
@@ -166,7 +156,6 @@ class ModelBuilder:
     def _build_sequences(self) -> list[SequenceModel]:
         seq_models = []
         for seq_cfg in self.loader.uvm.sequences:
-
             sv_constraints = []
             if seq_cfg.constraints:
                 # Jednoduchý wrapper, v budúcnosti sem môže ísť parser syntaxe
@@ -180,3 +169,37 @@ class ModelBuilder:
             )
             seq_models.append(model)
         return seq_models
+
+    def _get_sv_type_from_port(self, port) -> str:
+        """Convert a DUT port definition into a SystemVerilog type string."""
+        if port.enum_def:
+            return port.enum_name
+
+        width = port.width
+        if isinstance(width, int):
+            if width == 1:
+                return "logic"
+            else:
+                return f"logic [{width - 1}:0]"
+        # If it's already a range like "(3:0)" or "(DATA_WIDTH-1:0)", convert brackets
+        elif ":" in width:
+            # Replace parentheses with brackets for SV style
+            range_str = width.replace("(", "[").replace(")", "]")
+            return f"logic {range_str}"
+        else:
+            # Assume it's a parameter name (e.g., "DATA_WIDTH")
+            return f"logic [{width}-1:0]"
+
+    def _get_range_from_port(self, port) -> str:
+        """Return the SV range string (e.g., '[3:0]' or '[DATA_WIDTH-1:0]') or empty string for 1-bit."""
+        width = port.width
+        if isinstance(width, int):
+            if width == 1:
+                return ""
+            else:
+                return f"[{width - 1}:0]"
+        elif ":" in width:
+            # Convert (msb:lsb) to [msb:lsb]
+            return width.replace("(", "[").replace(")", "]")
+        else:
+            return f"[{width}-1:0]"

@@ -11,7 +11,7 @@ class DUTInfo:
     """Basic DUT information."""
 
     name: str
-    data_width: int  # TODO: create parser for (1:0) format
+    data_width: int
     output_width: int
     clock_period: int  # in ns
     reset_type: ActiveLevel
@@ -71,7 +71,7 @@ class Port:
     name: str
     direction: Direction
     type: str  # e.g., "logic", "wire"
-    width: Any  # TODO: create parser for (1:0) format or int also string reference (e.g., DATA_WIDTH)
+    width: Any
 
     description: str | None = None
     group: str | None = None  # e.g., "clock", "reset", "data", "control"
@@ -82,29 +82,6 @@ class Port:
 
     enum_name: str | None = None  # reference to EnumType name
     enum_def: EnumType | None = field(default=None, init=False)  # resolved EnumType
-
-
-@dataclass
-class OperationTiming:
-    """Timing specification for operation."""
-
-    latency: int  # in clock cycles
-    description: str | None = None
-    multi_cycle: bool = False
-    output_behavior: list[dict] | None = None
-
-
-@dataclass
-class Operation:
-    """DUT operation definition."""
-
-    op: str
-    formula: str  # e.g., "A + B", "A & B"
-    output_width: Any  # TODO: create parser for (1:0) format or int also string reference (e.g., DATA_WIDTH)
-    overflow: str | None = None
-    latency: int = 1
-    notes: str | None = None
-    implementation: str | None = None
 
 
 @dataclass

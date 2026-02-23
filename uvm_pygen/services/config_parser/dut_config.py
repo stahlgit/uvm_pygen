@@ -10,7 +10,6 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
     DUTInfo,
     EnumType,
     EnumValue,
-    Operation,
     Parameter,
     Port,
 )
@@ -56,15 +55,6 @@ class DUTConfiguration:
                 else:
                     errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
 
-        # Validate Operations against Enum
-        # Assuming 'operation_t' is the standard enum name for ops (FOR NOW TODO ? CONFIGURABLE)
-        operation_enum = self.get_enum("operation_t")
-        if operation_enum:
-            defined_ops = operation_enum.get_all_names()
-            for op in self.operations:
-                if op.op not in defined_ops:
-                    errors.append(f"Operation logic defined for '{op.op}', but it is not in 'operation_t' enum values.")
-
         # Validate Groups (Moved from _resolve_group_aliases logic if you want strictness)
         try:
             self._resolve_group_aliases()
@@ -82,13 +72,6 @@ class DUTConfiguration:
         for port in self.ports:
             if port.name == port_name:
                 return port
-        return None
-
-    def get_operation(self, operation_name: str) -> Operation | None:
-        """Get operation by name."""
-        for op in self.operations:
-            if op.op == operation_name:
-                return op
         return None
 
     def get_control_ports(self) -> list[Port]:
@@ -147,12 +130,6 @@ class DUTConfiguration:
             if param.name == width:
                 return param.value
 
-        # Try special cases
-        if width == "DATA_WIDTH":
-            return self.dut_info.data_width
-        elif width == "OUTPUT_WIDTH":
-            return self.dut_info.output_width
-
         raise ValueError(f"Cannot resolve width: {width}")
 
     def _load(self) -> None:
@@ -189,7 +166,6 @@ class DUTConfiguration:
         # Operations behavior
         behavior = self._raw_config.get("behavior", {})
         self.operand_selection = behavior.get("operand_selection", {})
-        self.operations = [Operation(**op) for op in behavior.get("operations", [])]
 
     def _resolve_group_aliases(self) -> None:
         """Identify which aliases are used for port groups and validate presence.

@@ -13,6 +13,8 @@ class AgentMode(StrEnum):
 
 
 class ComponentType(StrEnum):
+    """Defines the type of UVM component."""
+
     AGENT = auto()
     DRIVER = auto()
     MONITOR = auto()
@@ -38,13 +40,13 @@ class ComponentType(StrEnum):
 class Direction(StrEnum):
     """Defines the direction of a port/signal."""
 
-    INPUT = "input"
-    OUTPUT = "output"
-    INOUT = "inout"
+    INPUT = auto()
+    OUTPUT = auto()
+    INOUT = auto()
 
 
 class ActiveLevel(StrEnum):
     """Defines the active level of a control signal (e.g., reset)."""
 
-    ACTIVE_HIGH = "active_high"
-    ACTIVE_LOW = "active_low"
+    ACTIVE_HIGH = auto()
+    ACTIVE_LOW = auto()

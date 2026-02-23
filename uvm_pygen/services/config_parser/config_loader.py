@@ -4,6 +4,7 @@ from pathlib import Path
 
 from uvm_pygen.services.config_parser.dut_config import DUTConfiguration
 from uvm_pygen.services.config_parser.uvm_config import UVMConfiguration
+from uvm_pygen.services.utils.logger import logger
 
 
 class ConfigLoader:
@@ -14,26 +15,26 @@ class ConfigLoader:
 
     def __init__(self, dut_config_path: str | Path, uvm_config_path: str | Path) -> None:
         """Initialize and load configurations."""
-        print(f"Loading DUT config: {dut_config_path}")
+        logger.info(f"Loading DUT config: {dut_config_path}")
         self.dut = DUTConfiguration(dut_config_path)
 
-        print(f"Loading UVM config: {uvm_config_path}")
+        logger.info(f"Loading UVM config: {uvm_config_path}")
         self.uvm = UVMConfiguration(uvm_config_path)
 
-        print("✓ Configuration loaded successfully")
+        logger.info("✓ Configuration loaded successfully")
 
     def validate(self) -> bool:
         """Validate configuration consistency."""
-        print("Validating configurations...")
+        logger.debug("Validating configurations...")
 
         all_errors: list[str] | None = self.dut.validate().append(self.uvm.validate())
         if all_errors:
-            print("❌ Validation errors:")
+            logger.error("❌ Validation errors:")
             for err in all_errors:
-                print(f"  - {err}")
+                logger.error(f"  - {err}")
             return False
 
-        print("✓ Configuration validation passed")
+        logger.info("✓ Configuration validation passed")
         return True
 
     def summary(self) -> None:
@@ -55,10 +56,6 @@ class ConfigLoader:
         print(f"  - Control: {len(self.dut.get_control_ports())}")
         print(f"  - Data Input: {len(self.dut.get_data_input_ports())}")
         print(f"  - Output: {len(self.dut.get_data_output_ports())}")
-
-        print(f"\nOperations: {len(self.dut.operations)}")
-        for op in self.dut.operations:
-            print(f"  - {op.op}: {op.formula}")
 
         print(f"\nUVM Environment: {self.uvm.env_name}")
         print(f"  Components: {len(self.uvm.components)}")

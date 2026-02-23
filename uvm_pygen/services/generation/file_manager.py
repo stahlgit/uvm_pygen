@@ -4,6 +4,8 @@ from pathlib import Path
 
 from merge3 import Merge3
 
+from uvm_pygen.services.utils.logger import logger
+
 
 class FileManager:
     """Handle file system operations."""
@@ -56,7 +58,7 @@ class FileManager:
                     conflict_path = file_path.with_suffix(file_path.suffix + ".conflict")
                     with open(conflict_path, "w", encoding="utf-8") as f:
                         f.writelines(merge.merge_lines())  # use merge_lines() here
-                    print(f"  ⚠️ Conflict detected – saved as {conflict_path}")
+                    logger.warning(f"  ⚠️ Conflict detected – saved as {conflict_path}")
                     # Do not overwrite original file
                     return
                 else:
@@ -65,7 +67,7 @@ class FileManager:
             # File exists but no cache (maybe first run with this file, or cache deleted)
             # Treat as user-created file – we should not overwrite it without asking.
             # For now, we'll warn and skip.
-            print(f"  ⚠️ {file_path} exists but no cache – skipping to preserve user file.")
+            logger.warning(f"  ⚠️ {file_path} exists but no cache – skipping to preserve user file.")
             return
         else:
             # File doesn't exist or no local and no base – just write remote
@@ -73,7 +75,7 @@ class FileManager:
 
         # Write final content (if any)
         if final_content is not None:
-            print(f"  Writing: {file_path}")
+            logger.debug(f"  Writing: {file_path}")
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(final_content)
 

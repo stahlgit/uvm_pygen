@@ -8,6 +8,7 @@ from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
 from uvm_pygen.models.logic_schema.transaction_model import SvConstraint, SvVariable, TransactionModel
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
+from uvm_pygen.services.utils.logger import logger
 
 
 class ModelBuilder:
@@ -43,7 +44,7 @@ class ModelBuilder:
 
     def build(self) -> EnvModel:
         """Constructs the complete Environment Model."""
-        print("Building Logic Models...")
+        logger.info("Building Logic Models...")
 
         """TODO: decide if there will be multiple interfaces, or just one per run.
         If multiple, we need to map them from UVM config to DUT ports - filter ports by interface name.

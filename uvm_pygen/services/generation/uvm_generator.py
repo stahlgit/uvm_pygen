@@ -1,9 +1,10 @@
-from rich import print
+"""Generates UVM verification environment based on the provided environment model."""
 
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.generation.file_manager import FileManager
 from uvm_pygen.services.generation.renderer import TemplateRenderer
+from uvm_pygen.services.utils.logger import logger
 
 
 class UVMGenerator:
@@ -28,8 +29,8 @@ class UVMGenerator:
 
     def generate_all(self):
         """Run full generation process."""
-        print(f"\n🚀 Starting Code Generation for DUT: {self.model.dut_instance_name}...")
-        print(self.model)
+        logger.info(f"Starting Code Generation for DUT: {self.model.dut_instance_name}")
+        # logger.debug(format_as_json(self.model))
 
         self.generate_params_pkg()
         self.generate_transaction()
@@ -41,12 +42,12 @@ class UVMGenerator:
 
         # self.generate_env()
 
-        print("\n✅ Generation complete!")
+        logger.info("Generation complete!")
 
     def generate_top(self):
         """Generate top-level tesstbench module."""
         if not self.model.interfaces:
-            print("[yellow]⚠️ No interfaces defined, skipping top-level generation.[/yellow]")
+            logger.warning("⚠️ No interfaces defined, skipping top-level generation.")
             return
         iface = self.model.interfaces[0]
 

@@ -1,0 +1,38 @@
+//------------------------------------------------------------------------------
+// Class: {{ name }}_base_test
+// Description: Base test setting up the environment. All tests extend from this.
+//------------------------------------------------------------------------------
+
+class {{ name }}_base_test extends uvm_test;
+
+    `uvm_component_utils({{ name }}_base_test)
+
+    // Handle to the environment component
+    {{ env_name }} env;
+
+    // Constructor
+    function new(string name = "{{ name }}_base_test", uvm_component parent = null);
+        super.new(name, parent);
+    endfunction
+
+    // Build Phase: Instantiate the environment
+    virtual function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+        `uvm_info(get_type_name(), "Build phase running...", UVM_HIGH)
+        
+        // Create the environment using the UVM factory
+        env = {{ env_name }}::type_id::create("env", this);
+    endfunction
+
+    // End of Elaboration Phase: Print topology
+    virtual function void end_of_elaboration_phase(uvm_phase phase);
+        super.end_of_elaboration_phase(phase);
+        // This is extremely helpful for debugging! It prints the entire 
+        // component hierarchy tree to the transcript before time 0 starts.
+        uvm_top.print_topology();
+    endfunction
+
+    // Note: No run_phase here! 
+    // The base test just builds the testbench. Child tests will define the run_phase.
+
+endclass: {{ name }}_base_test

@@ -2,7 +2,7 @@
 
 from dataclasses import replace
 
-from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
+from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
@@ -129,6 +129,7 @@ class ModelBuilder:
                 is_rand=is_rand,
                 default_value=default_val,
                 comment=port.description,
+                direction=Direction(port.direction) if port.direction else None,
             )
             variables.append(var)
 

@@ -37,6 +37,7 @@ class UVMGenerator:
         self.generate_agents_and_components()
         self.generate_top()
         self.generate_sequences()
+        self.generate_test()
 
         # self.generate_env()
 
@@ -79,7 +80,7 @@ class UVMGenerator:
         trans_type = self.model.transaction.class_name
 
         # Base sequence
-        context = {"trans_type": trans_type}
+        context = {"trans_type": trans_type, "ports": self.model.interfaces[0].ports if self.model.interfaces else []}
         content = self.renderer.render("sequences/base_sequence.sv.j2", context)
         self.writer.write("base_sequence.sv", content, subdir="sequences")
 
@@ -91,6 +92,15 @@ class UVMGenerator:
         # Random sequence
         content = self.renderer.render("sequences/random_sequence.sv.j2", {"trans_type": trans_type})
         self.writer.write("random_sequence.sv", content, subdir="sequences")
+
+    def generate_test(self):
+        """Generate a basic test class."""
+        context = {
+            "name": self.model.dut_instance_name,
+            "env_name": f"{self.model.testbench_name}_env",
+        }
+        content = self.renderer.render("tests/base_test.sv.j2", context)
+        self.writer.write(f"{context['name']}_base_test.sv", content, subdir="tests")
 
     def generate_interface(self):
         """Generate SystemVerilog Interface."""

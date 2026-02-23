@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from uvm_pygen.constants.uvm_enum import Direction
+
 
 @dataclass
 class SvVariable:
@@ -10,7 +12,8 @@ class SvVariable:
     is_rand: bool  # Pridá kľúčové slovo "rand"
     default_value: str | None = None  # Napr. "0" alebo "ADD"
     comment: str = ""
-    #TODO: is_enum ?
+    direction: Direction | None = None
+    # TODO: is_enum ?
 
 
 @dataclass

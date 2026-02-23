@@ -6,16 +6,35 @@
 class {{ trans.class_name }} extends uvm_sequence_item;
 
     // Variables
+    // Inputs
     {% for var in trans.variables %}
+    {% if var.direction == "input" %}
     {% if var.is_rand %}    rand {% endif %}{{ var.sv_type }} {{ var.name }};
+    {% endif %}
     {% endfor %}
 
-    // Constraints
+    // Outputs
+    {% for var in trans.variables %}
+    {% if var.direction == "output" %}
+    {{ var.sv_type }} {{ var.name }};
+    {% endif %}
+    {% endfor %}
+
+    {% if trans.constraints %}
+    // Constraints from Config
+    {% endif %}
     {% for const in trans.constraints %}
     constraint {{ const.name }} {
         {% for line in const.body %}
         {{ line }};
         {% endfor %}
+    }
+    {% endfor %}
+
+    // Generated Constraints
+    {% for var in trans.variables %}
+    constraint c_{{ var.name }} {
+
     }
     {% endfor %}
 

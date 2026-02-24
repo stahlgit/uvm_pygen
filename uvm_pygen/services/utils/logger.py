@@ -1,11 +1,18 @@
 """Logging utilities for uvm_pygen, including enhanced JSON formatting and debug mode toggling."""
 
 import logging
+import pprint
 from pathlib import Path
+from typing import Any
 
+from rich.console import Console
 from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.pretty import Pretty
 
 LOG_DIR = Path(".uvm_pygen/logs")
+
+_rich_console = Console(stderr=False)
 
 
 def setup_logger(log_dir: str | Path = LOG_DIR) -> logging.Logger:
@@ -62,3 +69,51 @@ def set_debug_mode(enable: bool = True):
         for h in logger.handlers:
             if h.name == "console":
                 h.setLevel(logging.INFO)
+
+
+def log_object(
+    obj: Any,
+    *,
+    label: str | None = None,
+    level: int = logging.DEBUG,
+    expand_all: bool = True,
+) -> None:
+    """Pretty-prints any Python object to console.
+
+    Args:
+        obj:        The object to inspect and display.
+        label:      Optional title shown in the panel header (defaults to the object's type name).
+        level:      Logging level used for the plain-text file entry (default: DEBUG).
+        expand_all: When True, Rich expands nested structures fully instead of collapsing them.
+    """
+    title = label or type(obj).__name__
+
+    # --- Plain-text record for file / debug handlers ---
+    plain_repr = pprint.pformat(obj, indent=2, width=120, compact=True)
+    plain_message = f"{title}:\n{plain_repr}"
+
+    record = logger.makeRecord(
+        name=logger.name,
+        level=level,
+        fn="",
+        lno=0,
+        msg=plain_message,
+        args=(),
+        exc_info=None,
+    )
+
+    # --- Rich console output — only if the console handler would emit at this level ---
+    console_handler = next((h for h in logger.handlers if h.name == "console"), None)
+    if console_handler is not None and record.levelno >= console_handler.level:
+        _rich_console.print(
+            Panel(
+                Pretty(obj, expand_all=expand_all),
+                title=f"[bold cyan]{title}[/bold cyan]",
+                border_style="bright_black",
+            )
+        )
+
+    # Emit plain text to non-console handlers only (avoids a double printout on the terminal)
+    for handler in logger.handlers:
+        if handler.name != "console" and record.levelno >= handler.level:
+            handler.emit(record)

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from uvm_pygen.constants.uvm_enum import AgentMode
+from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
 from uvm_pygen.models.config_schema.dut_dataclass import EnumType, Parameter, Port
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
@@ -26,24 +26,26 @@ class AgentModel:
     name: str
     active: AgentMode
     interface_instance: InterfaceModel  # Odkaz na interface
-    has_driver: bool
-    has_monitor: bool
-    # Tu už budeme mať vyriešené, ktoré porty tento agent ovláda
+    parts: set[ComponentType]
+
+    def has(self, part: ComponentType) -> bool:
+        """Check if the agent includes a specific component type."""
+        return part in self.parts
 
 
 @dataclass
 class EnvModel:
     """Complete model for rendering."""
 
-    project_name: str 
+    project_name: str
     testbench_name: str
     agents: list[AgentModel]
     interfaces: list[InterfaceModel]
     scoreboard: ScoreboardModel | None
     sequences: list[SequenceModel]
     transaction: TransactionModel
-    
+
     parameters: list[Parameter]
     enums: dict[str, EnumType]
-    
+
     dut_instance_name: str = "dut_inst"

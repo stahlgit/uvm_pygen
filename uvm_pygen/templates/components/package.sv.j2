@@ -16,17 +16,12 @@ package {{ agent.name }}_pkg;
     //--------------------------------------------------------------------------
     
     // Transaction
-    // Assuming transaction is generated in 'objects/' folder (../../objects)
     `include "../../objects/{{ trans_type | lower }}.sv"
 
-    // Monitor (Always present)
-    `include "{{ agent.name }}_monitor.sv"
-
-    {% if agent.mode == 'active' %}
-    // Active Components
-    `include "{{ agent.name }}_sequencer.sv"
-    `include "{{ agent.name }}_driver.sv"
-    {% endif %}
+    // Components
+    {% for part in parts %}
+    `include "{{ agent.name }}_{{ part }}.sv"
+    {% endfor %}
 
     // Agent Class
     `include "{{ agent.name }}_agent.sv"

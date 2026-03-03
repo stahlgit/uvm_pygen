@@ -1,5 +1,6 @@
 """Generates UVM verification environment based on the provided environment model."""
 
+from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.generation.file_manager import FileManager
@@ -24,14 +25,23 @@ class UVMGenerator:
     """Main generator class orchestrating the rendering process."""
 
     AGENT_FILES = [
-        # (Template Path, Suffix, Attribute to check on AgentModel)
-        FileSpec("components/driver.sv.j2", "_driver.sv", check_attr="has_driver"),
         FileSpec(
-            "components/sequencer.sv.j2", "_sequencer.sv", check_attr="has_driver"
-        ),  # Usually same condition as driver
-        FileSpec("components/monitor.sv.j2", "_monitor.sv", check_attr="has_monitor"),
-        FileSpec("components/agent.sv.j2", "_agent.sv", check_attr=None),  # None = Always generate
-        FileSpec("common/package.sv.j2", "_agent_pkg.sv", check_attr=None),
+            "components/driver.sv.j2",
+            "_driver.sv",
+            condition=lambda a: a.has(ComponentType.DRIVER),
+        ),
+        FileSpec(
+            "components/sequencer.sv.j2",
+            "_sequencer.sv",
+            condition=lambda a: a.has(ComponentType.SEQUENCER),
+        ),
+        FileSpec(
+            "components/monitor.sv.j2",
+            "_monitor.sv",
+            condition=lambda a: a.has(ComponentType.MONITOR),
+        ),
+        FileSpec("components/agent.sv.j2", "_agent.sv"),
+        FileSpec("components/package.sv.j2", "_agent_pkg.sv"),
     ]
 
     def __init__(self, env_model: EnvModel) -> None:
@@ -137,6 +147,7 @@ class UVMGenerator:
                 "if_name": if_name,
                 "trans_type": trans_type,
                 "package_name": f"{self.model.dut_instance_name}_params_pkg",
+                "parts": agent.parts,
             }
             agent_dir = f"agents/{agent.name}"
 
@@ -202,7 +213,7 @@ class UVMGenerator:
 
     def _generate_random_test(self, num_transactions=10, drain_time=100):
         """Generate a random test class."""
-        active_agents = [a for a in self.model.agents if a.has_driver]
+        active_agents = [a for a in self.model.agents if a.has(ComponentType.DRIVER) and a.active == AgentMode.ACTIVE]
         if not active_agents:
             logger.warning("⚠️  No active agents found – skipping random test generation.")
             return
@@ -243,13 +254,9 @@ class UVMGenerator:
 
     def _should_generate(self, model_obj, spec: FileSpec) -> bool:
         """Determines if a file should be generated based on the model attributes."""
-        if not spec.check_attr and not spec.condition:
+        if spec.condition is None:
             return True
-
-        if spec.check_attr and getattr(model_obj, spec.check_attr, False):
-            return True
-
-        return bool(spec.condition and spec.condition(model_obj))
+        return spec.condition(model_obj)
 
     def _generate_component(self, template_path, context, filename, subdir):
         """Helper to render and write a component."""

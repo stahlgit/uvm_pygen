@@ -78,12 +78,14 @@ class ModelBuilder:
         agents = []
         for comp in self.loader.uvm.components:
             if ComponentType(comp.type) == ComponentType.AGENT:
+                parts = {
+                    ComponentType(part) for part in comp.subcomponents if part in {part.value for part in ComponentType}
+                }
                 agent_model = AgentModel(
                     name=comp.name,
                     active=AgentMode(comp.mode),
                     interface_instance=main_interface,
-                    has_driver="driver" in comp.subcomponents,
-                    has_monitor="monitor" in comp.subcomponents,
+                    parts=parts,
                 )
                 agents.append(agent_model)
 

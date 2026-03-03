@@ -3,15 +3,16 @@
 // Description: Testbench top with DUT and UVM harness
 //------------------------------------------------------------------------------
 
-`include "uvm_macros.svh"
-import uvm_pkg::*;
-
-// Import agent packages
-{% for agent in agents %}
-import {{ agent.name }}_agent_pkg::*;
-{% endfor %}
-
 module {{ testbench_name }}_top;
+
+  `include "uvm_macros.svh"
+  import uvm_pkg::*;
+
+  import {{ dut_instance_name }}_params_pkg::*;
+
+  import {{ dut_instance_name }}_test_pkg::*;
+
+  
 
   // Clock and reset signals
   logic {{ clock.name }};
@@ -28,7 +29,7 @@ module {{ testbench_name }}_top;
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }}),
     {% for port in ports %}
-    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %}
+    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %} 
     {% endfor %}
   );
 

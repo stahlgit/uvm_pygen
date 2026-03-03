@@ -40,8 +40,8 @@ class UVMGenerator:
             "_monitor.sv",
             condition=lambda a: a.has(ComponentType.MONITOR),
         ),
-        FileSpec("components/agent.sv.j2", "_agent.sv"),
-        FileSpec("components/package.sv.j2", "_agent_pkg.sv"),
+        FileSpec("components/agent.sv.j2", ".sv"),
+        FileSpec("components/package.sv.j2", "_pkg.sv"),
     ]
 
     def __init__(self, env_model: EnvModel) -> None:
@@ -177,6 +177,14 @@ class UVMGenerator:
         content = self.renderer.render("sequences/random_sequence.sv.j2", {"trans_type": trans_type})
         self.writer.write("random_sequence.sv", content, subdir="sequences")
 
+        # TODO: what if more from config ? think about it
+        context = {
+            "name": self.model.dut_instance_name,
+            "seqs": ["base_sequence", "direct_sequence", "random_sequence"],
+        }
+        content = self.renderer.render("sequences/sequence_pkg.sv.j2", context)
+        self.writer.write(f"{self.model.dut_instance_name}_seq_pkg.sv", content, subdir="sequences")
+
     def _generate_env(self):
         """Generate the UVM environment class."""
         if not self.model.agents:
@@ -186,7 +194,7 @@ class UVMGenerator:
         env_name = f"{self.model.testbench_name}_env"
 
         # Collect per-agent package names so the env can import them.
-        agent_pkgs = [f"{agent.name}_agent_pkg" for agent in self.model.agents]
+        agent_pkgs = [f"{agent.name}_pkg" for agent in self.model.agents]
 
         context = {
             "env_name": env_name,

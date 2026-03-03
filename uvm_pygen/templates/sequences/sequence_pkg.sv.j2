@@ -1,0 +1,20 @@
+//------------------------------------------------------------------------------
+// Package: {{name}}_seq_pkg
+// Description: Package containing all UVM sequences
+//------------------------------------------------------------------------------
+
+package {{name}}_seq_pkg;
+
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Import the package(s) that contain your transaction items.
+    `include "../objects/alutransaction.sv"
+
+
+    // Include your sequence class files
+    {% for seq in seqs %}
+    `include "{{seq}}.sv"
+    {% endfor %}
+
+endpackage : {{name}}_seq_pkg

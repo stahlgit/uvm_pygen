@@ -131,6 +131,7 @@ class ModelBuilder:
                 default_value=default_val,
                 comment=port.description,
                 direction=Direction(port.direction) if port.direction else None,
+                is_enum=bool(port.enum_def),
             )
             variables.append(var)
 

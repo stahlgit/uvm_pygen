@@ -1,0 +1,66 @@
+//------------------------------------------------------------------------------
+// Class: {{ name }}_random_test
+// Description: Runs the random_sequence on all active agent sequencers.
+//              Extends {{ name }}_base_test – inherits env build and vif setup.
+//------------------------------------------------------------------------------
+
+class {{ name }}_random_test extends {{ name }}_base_test;
+    `uvm_component_utils({{ name }}_random_test)
+
+    //--------------------------------------------------------------------------
+    // Sequence handles – one per active agent
+    //--------------------------------------------------------------------------
+    {% for agent in active_agents %}
+    random_sequence {{ agent.name }}_seq;
+    {% endfor %}
+
+    //--------------------------------------------------------------------------
+    // Constructor
+    //--------------------------------------------------------------------------
+    function new(string name = "{{ name }}_random_test", uvm_component parent = null);
+        super.new(name, parent);
+    endfunction : new
+
+    //--------------------------------------------------------------------------
+    // Build Phase – create sequences
+    //--------------------------------------------------------------------------
+    virtual function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+
+        {% for agent in active_agents %}
+        {{ agent.name }}_seq = random_sequence::type_id::create("{{ agent.name }}_seq");
+        {% endfor %}
+    endfunction : build_phase
+
+    //--------------------------------------------------------------------------
+    // Run Phase – start sequences on active sequencers, then drain
+    //--------------------------------------------------------------------------
+    virtual task run_phase(uvm_phase phase);
+        phase.raise_objection(this);
+
+        `uvm_info(get_type_name(), "Starting random test...", UVM_LOW)
+
+        // Wait for reset to deassert before driving stimulus
+        {% if if_name %}
+        m_vif.wait_for_reset();
+        {% endif %}
+
+        // Run sequences in parallel on all active agent sequencers
+        fork
+            {% for agent in active_agents %}
+            begin
+                {{ agent.name }}_seq.num_transactions = {{ num_transactions }};
+                {{ agent.name }}_seq.start(m_env.{{ agent.name }}.m_sequencer);
+            end
+            {% endfor %}
+        join
+
+        // Allow any in-flight transactions to complete before ending
+        #{{ drain_time }};
+
+        `uvm_info(get_type_name(), "Random test complete.", UVM_LOW)
+
+        phase.drop_objection(this);
+    endtask : run_phase
+
+endclass : {{ name }}_random_test

@@ -9,6 +9,8 @@ interface {{ if_model.name }}(
 );
 
     import {{ package_name }}::*; // Import agent package for Transaction definition
+    `include "uvm_macros.svh"
+    `include "objects/alutransaction.sv"
 
     //--------------------------------------------------------------------------
     // Signals

@@ -3,6 +3,10 @@
 // Description: Generated Transaction Object
 //------------------------------------------------------------------------------
 
+`include "uvm_macros.svh"
+import uvm_pkg::*;
+import {{ package_name }}::*;
+
 class {{ trans.class_name }} extends uvm_sequence_item;
 
     // Variables
@@ -41,7 +45,7 @@ class {{ trans.class_name }} extends uvm_sequence_item;
     // UVM Macros
     `uvm_object_utils_begin({{ trans.class_name }})
         {% for var in trans.variables %}
-        `uvm_field_int({{ var.name }}, UVM_ALL_ON)
+        {{ var.uvm_field_macro }}
         {% endfor %}
     `uvm_object_utils_end
 

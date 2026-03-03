@@ -63,7 +63,8 @@ class UVMGenerator:
         self._generate_env()
 
         # Layer 6 - depends on env
-        self._generate_test()
+        self._generate_base_test()
+        self._generate_random_test()
 
         # Layer 7 - depends on interface + agents (wiring)
         self._generate_top()
@@ -88,11 +89,18 @@ class UVMGenerator:
         # Do šablóny môžeme poslať celý objekt 'transaction'
 
         content = self.renderer.render(
-            "logic/transaction.sv.j2", {"trans": self.model.transaction, "project_name": self.model.project_name}
+            "logic/transaction.sv.j2",
+            {
+                "trans": self.model.transaction,
+                "project_name": self.model.project_name,
+                "package_name": f"{self.model.dut_instance_name}_params_pkg",
+            },
         )
 
         filename = f"{self.model.transaction.class_name.lower()}.sv"
         self.writer.write(filename, content, subdir="objects")
+
+    # TODO: map subdirs ? interface needs no know location of transaction - but that is static and can be hardcoded in the template for now
 
     def _generate_interface(self):
         """Generate SystemVerilog Interface."""
@@ -124,7 +132,12 @@ class UVMGenerator:
         trans_type = self.model.transaction.class_name
 
         for agent in self.model.agents:
-            context = {"agent": agent, "if_name": if_name, "trans_type": trans_type}
+            context = {
+                "agent": agent,
+                "if_name": if_name,
+                "trans_type": trans_type,
+                "package_name": f"{self.model.dut_instance_name}_params_pkg",
+            }
             agent_dir = f"agents/{agent.name}"
 
             for spec in self.AGENT_FILES:
@@ -177,14 +190,33 @@ class UVMGenerator:
         filename = f"{env_name}.sv"
         self.writer.write(filename, content, subdir="env")
 
-    def _generate_test(self):
+    def _generate_base_test(self):
         """Generate a basic test class."""
         context = {
             "name": self.model.dut_instance_name,
             "env_name": f"{self.model.testbench_name}_env",
+            "if_name": self.model.interfaces[0].name if self.model.interfaces else None,
         }
         content = self.renderer.render("tests/base_test.sv.j2", context)
         self.writer.write(f"{context['name']}_base_test.sv", content, subdir="tests")
+
+    def _generate_random_test(self, num_transactions=10, drain_time=100):
+        """Generate a random test class."""
+        active_agents = [a for a in self.model.agents if a.has_driver]
+        if not active_agents:
+            logger.warning("⚠️  No active agents found – skipping random test generation.")
+            return
+        context = {
+            "name": self.model.dut_instance_name,
+            "env_name": f"{self.model.testbench_name}_env",
+            "if_name": self.model.interfaces[0].name if self.model.interfaces else None,
+            "active_agents": active_agents,
+            "num_transactions": num_transactions,
+            "drain_time": drain_time,
+        }
+        content = self.renderer.render("tests/random_test.sv.j2", context)
+        filename = f"{self.model.dut_instance_name}_random_test.sv"
+        self.writer.write(filename, content, subdir="tests")
 
     def _generate_top(self):
         """Generate top-level tesstbench module."""

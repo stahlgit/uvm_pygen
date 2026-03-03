@@ -18,7 +18,7 @@ environment:
   
   components:
     # Agent for driving inputs
-    - name: alu_agent
+    - name: alu
       # also add connect
       type: uvm_agent
       mode: active  # active/passive

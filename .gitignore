@@ -12,3 +12,7 @@ my_tb_verif/
 alu_tb/
 *.sv
 .uvm_pygen/
+
+
+#questa generated files
+work/

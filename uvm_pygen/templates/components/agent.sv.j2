@@ -1,18 +1,16 @@
 //------------------------------------------------------------------------------
 // Class: {{ agent.name }}
 // Description: Agent container for {{ agent.name }}
-// Mode: {{ agent.mode }}
+// Mode: {%if agent.mode.value == "active"%}Active{%else%}Passive{%endif%} 
 //------------------------------------------------------------------------------
 
 class {{ agent.name }} extends uvm_agent;
     `uvm_component_utils({{ agent.name }})
 
     // Components
-    {{ agent.name }}_monitor   monitor;
-    {% if agent.mode == 'active' %}
-    {{ agent.name }}_driver    driver;
-    {{ agent.name }}_sequencer sequencer;
-    {% endif %}
+    {% for part in agent.parts %}
+    {{ agent.name }}_{{ part }} m_{{ agent.name }}_{{ part }};
+    {% endfor %}
 
     // Analysis Port (Pass-through from Monitor)
     uvm_analysis_port #({{ trans_type }}) analysis_port;
@@ -26,12 +24,9 @@ class {{ agent.name }} extends uvm_agent;
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
 
-        monitor = {{ agent.name }}_monitor::type_id::create("monitor", this);
-
-        {% if agent.mode == 'active' %}
-        driver    = {{ agent.name }}_driver::type_id::create("driver", this);
-        sequencer = {{ agent.name }}_sequencer::type_id::create("sequencer", this);
-        {% endif %}
+        {% for part in agent.parts %}
+        m_{{ agent.name }}_{{ part }} = {{ agent.name }}_{{ part }}::type_id::create("m_{{ agent.name }}_{{ part }}", this);
+        {% endfor %}
     endfunction
 
     // Connect Phase
@@ -46,17 +41,17 @@ class {{ agent.name }} extends uvm_agent;
         end
 
         // Connect Monitor VIF
-        monitor.vif = vif;
+        m_{{ agent.name }}_monitor.vif = vif;
         
         // Connect Analysis Port
-        analysis_port = monitor.analysis_port;
+        analysis_port = m_{{ agent.name }}_monitor.analysis_port;
 
-        {% if agent.mode == 'active' %}
+        {% if agent.mode.value == "active" %}
         // Connect Driver VIF
-        driver.vif = vif;
+        m_{{ agent.name }}_driver.vif = vif;
         
         // Connect Driver and Sequencer
-        driver.seq_item_port.connect(sequencer.seq_item_export);
+        m_{{ agent.name }}_driver.seq_item_port.connect(m_{{ agent.name }}_sequencer.seq_item_export);
         {% endif %}
     endfunction
 

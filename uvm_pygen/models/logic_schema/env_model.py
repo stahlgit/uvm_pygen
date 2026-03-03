@@ -24,7 +24,7 @@ class AgentModel:
     """Representing configured agent (ready for rendering)."""
 
     name: str
-    active: AgentMode
+    mode: AgentMode
     interface_instance: InterfaceModel  # Odkaz na interface
     parts: set[ComponentType]
 

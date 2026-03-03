@@ -83,7 +83,7 @@ class ModelBuilder:
                 }
                 agent_model = AgentModel(
                     name=comp.name,
-                    active=AgentMode(comp.mode),
+                    mode=AgentMode(comp.mode),
                     interface_instance=main_interface,
                     parts=parts,
                 )

@@ -1,0 +1,27 @@
+//------------------------------------------------------------------------------
+// Package: {{name}}_test_pkg
+// Description: Package containing all UVM tests
+//------------------------------------------------------------------------------
+
+package {{name}}_test_pkg;
+
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Import the Environment package (so the test can instantiate it)
+    import {{env}}::*;
+
+    // Import the Sequence package (so the test can start sequences)
+    import {{name}}_seq_pkg::*;
+
+    // Import Agent packages (in case the test needs to configure them or use transactions)
+    {% for agent in agents %}
+    import {{ agent.name }}_pkg::*;
+    {% endfor %}
+
+    // Include the test classes themselves
+    {% for test in tests %}
+    `include "{{test}}.sv"
+    {% endfor %}
+
+endpackage : {{name}}_test_pkg

@@ -75,6 +75,7 @@ class UVMGenerator:
         # Layer 6 - depends on env
         self._generate_base_test()
         self._generate_random_test()
+        self._generate_test_pkg()
 
         # Layer 7 - depends on interface + agents (wiring)
         self._generate_top()
@@ -225,7 +226,7 @@ class UVMGenerator:
 
     def _generate_random_test(self, num_transactions=10, drain_time=100):
         """Generate a random test class."""
-        active_agents = [a for a in self.model.agents if a.has(ComponentType.DRIVER) and a.active == AgentMode.ACTIVE]
+        active_agents = [a for a in self.model.agents if a.has(ComponentType.DRIVER) and a.mode == AgentMode.ACTIVE]
         if not active_agents:
             logger.warning("⚠️  No active agents found – skipping random test generation.")
             return
@@ -239,6 +240,18 @@ class UVMGenerator:
         }
         content = self.renderer.render("tests/random_test.sv.j2", context)
         filename = f"{self.model.dut_instance_name}_random_test.sv"
+        self.writer.write(filename, content, subdir="tests")
+
+    def _generate_test_pkg(self):
+        """Generate the test package that includes all tests."""
+        context = {
+            "name": self.model.dut_instance_name,
+            "env": f"{self.model.testbench_name}_env_pkg",
+            "agents": self.model.agents,
+            "tests": [f"{self.model.dut_instance_name}_base_test", f"{self.model.dut_instance_name}_random_test"],
+        }
+        content = self.renderer.render("tests/test_pkg.sv.j2", context)
+        filename = f"{self.model.dut_instance_name}_test_pkg.sv"
         self.writer.write(filename, content, subdir="tests")
 
     def _generate_top(self):

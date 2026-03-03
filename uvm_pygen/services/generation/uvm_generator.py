@@ -201,6 +201,10 @@ class UVMGenerator:
         filename = f"{env_name}.sv"
         self.writer.write(filename, content, subdir="env")
 
+        content = self.renderer.render("common/env_pkg.sv.j2", context)
+        filename = f"{env_name}_pkg.sv"
+        self.writer.write(filename, content, subdir="env")
+
     def _generate_base_test(self):
         """Generate a basic test class."""
         context = {

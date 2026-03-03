@@ -1,0 +1,19 @@
+//------------------------------------------------------------------------------
+// Package: {{ env_name }}_pkg
+// Description: Package for the {{ env_name }} Environment
+//------------------------------------------------------------------------------
+
+package {{ env_name }}_pkg;
+
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    // Import agent packages
+    {% for pkg in agent_pkgs %}
+    import {{ pkg }}::*;
+    {% endfor %}
+
+    // Environment class
+    `include "{{ env_name }}.sv"
+
+endpackage : {{ env_name }}_pkg

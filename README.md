@@ -4,15 +4,16 @@
 
 ```mermaid
 flowchart TD
-    %% Styling
-    classDef logic fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef data fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef logic   fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef data    fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
     classDef artifact fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef registry fill:#fce4ec,stroke:#c62828,stroke-width:2px;
+    classDef unit    fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
 
     subgraph Inputs [Inputs]
         direction TB
-        DUT_CFG[config_dut.yaml]:::file
-        UVM_CFG[config_uvm.yaml]:::file
+        DUT_CFG[config_dut.yaml]
+        UVM_CFG[config_uvm.yaml]
     end
 
     subgraph Phase1 [Configuration Loading]
@@ -23,7 +24,6 @@ flowchart TD
 
     subgraph Phase2 [Internal Representation]
         Builder[Model Builder]:::logic
-
         subgraph EnvModel [EnvModel Container]
             direction TB
             Ag[Agents]:::data
@@ -35,73 +35,51 @@ flowchart TD
     end
 
     subgraph Phase3 [Code Generation]
-        Generator[UVM Generator]:::logic
+        Generator[Generator / Orchestrator]:::logic
+        Registry[(GenerationRegistry <br> files · content · context)]:::registry
+
+        subgraph Units [Generation Units — toposorted]
+            direction LR
+            U1[ParamsPkg]:::unit
+            U2[Transaction]:::unit
+            U3[Interface]:::unit
+            U4[Agents]:::unit
+            U5[Sequences]:::unit
+            U6[Env]:::unit
+            U7[Tests]:::unit
+            U8[Top]:::unit
+
+            U1 --> U2 & U3
+            U2 & U3 --> U4 & U5
+            U4 & U5 --> U6
+            U6 & U3 & U4 --> U7
+            U3 & U4 --> U8
+        end
+
         Renderer[Jinja2 Renderer]:::logic
-        Writer[File Writer]:::logic
-        Templates[Templates .j2]:::file
+        Writer[File Manager]:::logic
+        Templates[Templates .j2]
     end
 
     subgraph Outputs [Generated TB]
-        SV_FILES[SystemVerilog Files\n.sv]:::artifact
+        SV_FILES[SystemVerilog Files .sv]:::artifact
     end
 
-    %% Connections
-    DUT_CFG --> Loader
-    UVM_CFG --> Loader
-
-    Loader --> DUT_OBJ
-    Loader --> UVM_OBJ
-
-    DUT_OBJ --> Builder
-    UVM_OBJ --> Builder
-
+    DUT_CFG & UVM_CFG --> Loader
+    Loader --> DUT_OBJ & UVM_OBJ
+    DUT_OBJ & UVM_OBJ --> Builder
     Builder --> EnvModel
 
     EnvModel ==> Generator
-
+    Generator -- bootstraps --> Registry
+    Generator -- toposort + dispatch --> Units
+    Units -- read deps / write outputs --> Registry
+    Units --> Renderer
     Templates -.-> Renderer
-    Generator --> Renderer
     Renderer --> Writer
     Writer --> Outputs
 ```
++
 
 ## User-Friendly Regeneration: Preservation of Manual Edits
 UVM_PYGEN automatically preserves manual changes made by user. No special markers or protected areas are needed.
-
-## 
-```
-├───alu_tb
-│   │   alu_if.sv
-│   │   alu_tb_top.sv
-│   │
-│   ├───agents
-│   │   ├───alu_agent
-│   │   │       alu_agent_pkg.sv       <-- Compiles everything in this folder
-│   │   │       alu_agent.sv           <-- Fixed naming (no _agent_agent)
-│   │   │       alu_driver.sv
-│   │   │       alu_monitor.sv
-│   │   │       alu_sequencer.sv
-│   │   │       alu_seq_item.sv        <-- Moved from 'objects'
-│   │   │       alu_agent_config.sv    <-- Added for UVM config
-│   │   │       alu_sequences.sv       <-- Base and derived seqs for THIS agent
-│   │   │
-│   │   └───output_agent
-│   │           output_agent_pkg.sv
-│   │           output_agent.sv
-│   │           output_monitor.sv
-│   │           output_seq_item.sv
-│   │           output_agent_config.sv
-│   │
-│   ├───env
-│   │       alu_env_pkg.sv
-│   │       alu_env.sv                 <-- Instantiates agents and scoreboard
-│   │       alu_env_config.sv
-│   │       alu_scoreboard.sv
-│   │
-│   ├───vsequences                     <-- "Virtual" sequences that coordinate multiple agents
-│   │       alu_vseq_base.sv
-│   │
-│   └───tests
-│           alu_test_pkg.sv
-│           alu_base_test.sv
-```

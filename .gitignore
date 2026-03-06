@@ -16,3 +16,11 @@ alu_tb/
 
 #questa generated files
 work/
+rtl/
+compile.tcl
+start_verification.ps1
+start_common.tcl
+transcript
+vsim.wlf
+wave.tcl
+start.tcl

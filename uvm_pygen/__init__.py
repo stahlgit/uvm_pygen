@@ -3,7 +3,7 @@
 import sys
 
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
-from uvm_pygen.services.generation.uvm_generator import UVMGenerator
+from uvm_pygen.services.generation.generator import Generator
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
 from uvm_pygen.services.utils.logger import logger, set_debug_mode
 from uvm_pygen.services.utils.parser import parse_args
@@ -31,5 +31,5 @@ def run():
     env_model = builder.build()
 
     ### PHASE 3 : GENERATE UVM VERIFICATION ENVIRONMENT ###
-    generator = UVMGenerator(env_model)
+    generator = Generator(env_model)
     generator.generate_all()

@@ -5,7 +5,7 @@
 verification:
   project_name: "ALU Functional Verification"
   dut_config: "config_dut.yaml"  # Reference to DUT config
-  testbench_name: "alu_tb"
+  testbench_name: "new_test"
   uvm_version: "1.2"
   
 # ============================================================================
@@ -55,33 +55,33 @@ environment:
         coverage:
           enabled: true
           type: uvm_subscriber
-
-    - name: rando
-      type: uvm_agent
-      mode: active
-      interface: alu_if
-      direction: input
-      
-      subcomponents:
-        driver:
-          enabled: true
-          type: uvm_driver
-          
-        sequencer:
-          enabled: true
-          type: uvm_sequencer
+    # try this, where here is missing monitor --> add warning to user
+    # - name: rando
+    #   type: uvm_agent
+    #   mode: active
+    #   interface: alu_if
+    #   direction: input
+    #   
+    #   subcomponents:
+    #     driver:
+    #       enabled: true
+    #       type: uvm_driver
+    #       
+    #     sequencer:
+    #       enabled: true
+    #       type: uvm_sequencer
 
     #TODO add connect --> then we know how to connect analysis ports (scoreboard)
     # Scoreboard for checking
-    - name: scoreboard
-      type: uvm_scoreboard
-      inputs:
-        - from: alu_agent.monitor # could this be done as redefiniton ? inherited ?
-          port: analysis_port
-        - from: output_agent.monitor
-          port: analysis_port
-      comparison_method: golden_model
-    
+    # - name: scoreboard
+    #   type: uvm_scoreboard
+    #   inputs:
+    #     - from: alu_agent.monitor # could this be done as redefiniton ? inherited ?
+    #       port: analysis_port
+    #     - from: output_agent.monitor
+    #       port: analysis_port
+    #   comparison_method: golden_model
+    # 
     
     
     # Golden/Reference Model

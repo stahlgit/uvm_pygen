@@ -11,6 +11,7 @@ __pycache__/
 my_tb_verif/
 alu_tb/
 *.sv
+*.tcl
 .uvm_pygen/
 
 

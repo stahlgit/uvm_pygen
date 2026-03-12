@@ -30,3 +30,5 @@ class ParamsPkgUnit(GenerationUnit):
         written = self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.dut_instance_name)
         path = next(iter(written.values()), None)
         reg.register(self.key, path=path, package_name=pkg_name)
+        if path:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(path, model.testbench_name))

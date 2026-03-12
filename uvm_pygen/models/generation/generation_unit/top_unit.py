@@ -46,5 +46,8 @@ class TopUnit(GenerationUnit):
             "reset": iface.reset,
             "ports": iface.ports,
         }
-        self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.testbench_name)
+        written = self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.testbench_name)
         reg.register(self.key)
+        top_filename = f"{model.testbench_name}_top.sv"
+        if top_filename in written:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(written[top_filename], model.testbench_name))

@@ -68,6 +68,10 @@ class AgentsUnit(GenerationUnit):
                 )
                 for spec in self.FILES
             ]
-            self._render_specs(agent_specs, context, reg, model, renderer, writer, prefix=agent.name.lower())
+            written = self._render_specs(agent_specs, context, reg, model, renderer, writer, prefix=agent.name.lower())
+            # Register the pkg path so SimUnit can read it in order.
+            pkg_filename = f"{agent.name.lower()}_pkg.sv"
+            if pkg_filename in written:
+                reg.context.setdefault("src_files", []).append(self._tcl_path(written[pkg_filename], model.testbench_name))
 
         reg.register(self.key)

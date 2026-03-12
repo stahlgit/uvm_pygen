@@ -34,3 +34,5 @@ class TransactionUnit(GenerationUnit):
         )
         path = next(iter(written.values()), None)
         reg.register(self.key, path=path, trans_type=model.transaction.class_name)
+        if path:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(path, model.testbench_name))

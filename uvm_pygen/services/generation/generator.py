@@ -7,6 +7,7 @@ from uvm_pygen.models.generation.generation_unit import (
     InterfaceUnit,
     ParamsPkgUnit,
     SequencesUnit,
+    SimUnit,
     TestsUnit,
     TopUnit,
     TransactionUnit,
@@ -116,5 +117,6 @@ class Generator:
             SequencesUnit(),
             EnvUnit(),
             TestsUnit(),
+            SimUnit(),
             TopUnit(),
         ]

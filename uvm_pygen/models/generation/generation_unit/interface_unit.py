@@ -40,3 +40,5 @@ class InterfaceUnit(GenerationUnit):
         written = self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=if_model.name)
         path = next(iter(written.values()), None)
         reg.register(self.key, path=path, if_name=if_model.name)
+        if path:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(path, model.testbench_name))

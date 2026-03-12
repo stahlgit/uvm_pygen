@@ -48,6 +48,7 @@ class SequencesUnit(GenerationUnit):
             },
         }
 
+        pkg_path = None
         for spec in self.FILES:
             if not spec.should_generate(reg, model):
                 continue
@@ -57,6 +58,11 @@ class SequencesUnit(GenerationUnit):
                 else spec.suffix  # suffix is already the full filename
             )
             content = renderer.render(spec.template, per_file_ctx[filename])
-            writer.write(filename, content, subdir=spec.subdir)
+            path = writer.write(filename, content, subdir=spec.subdir)
+            if path and spec.suffix == "_seq_pkg.sv":
+                pkg_path = path  # Capture the package path for registration
 
-        reg.register(self.key, seq_pkg_name=f"{model.dut_instance_name}_seq_pkg", seq_names=seq_names)
+        seq_pkg_name = f"{model.dut_instance_name}_seq_pkg"
+        reg.register(self.key, seq_pkg_name=seq_pkg_name, seq_names=seq_names)
+        if pkg_path:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(pkg_path, model.testbench_name))

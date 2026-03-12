@@ -52,5 +52,8 @@ class TestsUnit(GenerationUnit):
                 f"{model.dut_instance_name}_random_test",
             ],
         }
-        self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.dut_instance_name)
+        written = self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.dut_instance_name)
         reg.register(self.key)
+        pkg_filename = f"{model.dut_instance_name}_test_pkg.sv"
+        if pkg_filename in written:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(written[pkg_filename], model.testbench_name))

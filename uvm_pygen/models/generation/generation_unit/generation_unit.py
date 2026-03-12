@@ -85,3 +85,11 @@ class GenerationUnit(ABC):
             registry.get_context("renderer"),
             registry.get_context("writer"),
         )
+
+    def _tcl_path(self, path: Path, tb: str) -> str:
+        """Convert registry Path to space separated TCL path string relative to testbench."""
+        try:
+            rel = path.relative_to(tb)
+            return " ".join([tb] + list(rel.parts))
+        except ValueError:
+            return " ".join(path.parts)

@@ -43,5 +43,9 @@ class EnvUnit(GenerationUnit):
             "trans_type": reg.get_context("trans_type", self.key),
             "if_name": reg.get_context("if_name", self.key),
         }
-        self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.testbench_name)
-        reg.register(self.key, env_name=env_name, env_pkg_name=f"{env_name}_pkg")
+        written = self._render_specs(self.FILES, context, reg, model, renderer, writer, prefix=model.testbench_name)
+        env_pkg_name = f"{env_name}_pkg"
+        reg.register(self.key, env_name=env_name, env_pkg_name=env_pkg_name)
+        pkg_filename = f"{model.testbench_name}_env_pkg.sv"
+        if pkg_filename in written:
+            reg.context.setdefault("src_files", []).append(self._tcl_path(written[pkg_filename], model.testbench_name))

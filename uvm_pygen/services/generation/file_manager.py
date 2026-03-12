@@ -16,8 +16,11 @@ class FileManager:
         self.cache_dir = Path(cache_dir)
         self._create_dir(self.output_dir)
 
-    def write(self, filename: str, content: str, subdir: str | None = None) -> None:
+    def write(self, filename: str, content: str, subdir: str | None = None) -> Path | None:
         """Write content to a file, optionally in a subdirectory.
+
+        Returns the resolved Path on success, or None if the write was skipped
+        (merge conflict or user-file preservation).
 
         Args:
             filename (str): Name of the file to write.
@@ -60,7 +63,7 @@ class FileManager:
                         f.writelines(merge.merge_lines())  # use merge_lines() here
                     logger.warning(f"  ⚠️ Conflict detected – saved as {conflict_path}")
                     # Do not overwrite original file
-                    return
+                    return None
                 else:
                     final_content = "".join(merge.merge_lines())  # and here
         elif local_lines is not None and base_lines is None:
@@ -68,7 +71,7 @@ class FileManager:
             # Treat as user-created file – we should not overwrite it without asking.
             # For now, we'll warn and skip.
             logger.warning(f"  ⚠️ {file_path} exists but no cache – skipping to preserve user file.")
-            return
+            return None
         else:
             # File doesn't exist or no local and no base – just write remote
             final_content = content
@@ -82,6 +85,8 @@ class FileManager:
         # Always update cache with the newly generated (remote) version
         with open(cache_path, "w", encoding="utf-8") as f:
             f.write(content)
+
+        return file_path
 
     def _create_dir(self, path: Path) -> None:
         """Create directory if it doesn't exist."""

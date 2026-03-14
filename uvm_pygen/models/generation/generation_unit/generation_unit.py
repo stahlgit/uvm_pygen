@@ -42,7 +42,7 @@ class GenerationUnit(ABC):
         registry.assert_deps(self.deps, self.key)
         model, renderer, writer = self._infra(registry)
         context = self._build_context(registry, model)
-        written = self._render_specs(context, registry, model, renderer, writer)
+        written = self._render_specs(context, registry, model, renderer, writer, self._prefix(model))
         self._post_run(registry, model, written)
 
     def _build_context(self, registry, model) -> dict:

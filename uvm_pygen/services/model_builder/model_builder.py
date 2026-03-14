@@ -56,7 +56,7 @@ class ModelBuilder:
         data_out_ports = self.loader.dut.get_data_output_ports()
         clk_ports = self.loader.dut.get_clock_ports()
         rst_ports = self.loader.dut.get_reset_ports()
-        interface_ports = control_ports + data_in_ports + data_out_ports + clk_ports + rst_ports
+        interface_ports = control_ports + data_in_ports + data_out_ports
 
         resolved_interface_ports = []
         for port in interface_ports:

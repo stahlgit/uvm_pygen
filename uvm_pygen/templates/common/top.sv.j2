@@ -12,8 +12,6 @@ module {{ testbench_name }}_top;
 
   import {{ dut_instance_name }}_test_pkg::*;
 
-  
-
   // Clock and reset signals
   logic {{ clock.name }};
   logic {{ reset.name }};
@@ -29,7 +27,7 @@ module {{ testbench_name }}_top;
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }}),
     {% for port in ports %}
-    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %} 
+    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %}
     {% endfor %}
   );
 
@@ -48,7 +46,7 @@ module {{ testbench_name }}_top;
 
   // UVM test start
   initial begin
-    uvm_config_db #(virtual {{ interface.name }})::set(null, "*", "vif", intf);
+    uvm_resource_db #(virtual {{ interface.name }})::set("*", "vif", intf);
     run_test();
   end
 

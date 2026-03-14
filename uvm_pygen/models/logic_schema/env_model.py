@@ -32,15 +32,15 @@ class InterfaceModel(BaseModel):
             raise ValueError("InterfaceModel must have at least one port")
         return v
 
-    @model_validator(mode="after")
-    def clock_and_reset_must_be_in_ports(self) -> InterfaceModel:
-        """Ensure clock/reset references are actually present in the port list."""
-        port_names = {p.name for p in self.ports}
-        if self.clock and self.clock.name not in port_names:
-            raise ValueError(f"InterfaceModel '{self.name}': clock port '{self.clock.name}' is not in the ports list")
-        if self.reset and self.reset.name not in port_names:
-            raise ValueError(f"InterfaceModel '{self.name}': reset port '{self.reset.name}' is not in the ports list")
-        return self
+    # @model_validator(mode="after")
+    # def clock_and_reset_must_be_in_ports(self) -> InterfaceModel:
+    #     """Ensure clock/reset references are actually present in the port list."""
+    #     port_names = {p.name for p in self.ports}
+    #     if self.clock and self.clock.name not in port_names:
+    #         raise ValueError(f"InterfaceModel '{self.name}': clock port '{self.clock.name}' is not in the ports list")
+    #     if self.reset and self.reset.name not in port_names:
+    #         raise ValueError(f"InterfaceModel '{self.name}': reset port '{self.reset.name}' is not in the ports list")
+    #     return self
 
 
 class AgentModel(BaseModel):

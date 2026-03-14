@@ -7,13 +7,16 @@ class random_sequence extends base_sequence;
 
     `uvm_object_utils(random_sequence)
 
+    // Number of transactions to generate; set by the test before start()
+    int unsigned num_transactions = {{ num_transaction }};
+
     function new(string name = "random_sequence");
         super.new(name);
     endfunction
 
     task body();
-        `uvm_info(get_type_name(), "Starting random sequence", UVM_MEDIUM)
-        repeat (10) begin
+        `uvm_info(get_type_name(), $sformatf("Starting random sequence (%0d transactions)", num_transactions), UVM_MEDIUM)
+        repeat (num_transactions) begin
             req = {{ trans_type }}::type_id::create("req");
             start_item(req);
             if (!req.randomize())

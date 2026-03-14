@@ -16,6 +16,8 @@ class SequencesUnit(GenerationUnit):
     key: str = "sequences"
     deps: list[str] = field(default_factory=lambda: ["transaction", "interface"])
 
+    num_transactions: int = 10
+
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(template="sequences/base_sequence.sv.j2", suffix="base_sequence.sv", subdir="sequences"),
         FileSpec(template="sequences/derived_sequence.sv.j2", suffix="direct_sequence.sv", subdir="sequences"),
@@ -47,6 +49,7 @@ class SequencesUnit(GenerationUnit):
             "body": "// User-defined body",
             "name": model.dut_instance_name,
             "seqs": self._SEQ_NAMES,
+            "num_transaction": self.num_transactions,
         }
 
         pkg_path: Path | None = None

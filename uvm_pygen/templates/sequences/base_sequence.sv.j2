@@ -7,16 +7,14 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
 
     `uvm_object_utils(base_sequence)
 
-    // Optional: Keep for generic reuse, but 'req' is already typed as AluTransaction
-    typedef AluTransaction seq_item_t;
-
+    typedef {{ trans_type }} seq_item_t;
 
     {% for port in ports %}
     {% if port.direction == "input" %}
     {% if port.enum_name %}
-    rand {{port.enum_name}} default_{{port.name.lower()}};
+    rand {{ port.enum_name }} default_{{ port.name.lower() }};
     {% else %}
-    rand {{port.type}} {{port.width}} default_{{port.name.lower()}};
+    rand {{ port.type }} {{ port.width }} default_{{ port.name.lower() }};
     {% endif %}
     {% endif %}
     {% endfor %}
@@ -25,10 +23,8 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
         super.new(name);
     endfunction
 
-    // Declare req handle
     `uvm_declare_p_sequencer(uvm_sequencer #({{ trans_type }}))
 
-    // Body task
     task body();
         req = seq_item_t::type_id::create("req");
 
@@ -37,14 +33,14 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
         if (!req.randomize() with {
             {% for port in ports %}
             {% if port.direction == "input" %}
-            {{port.name.lower()}} == local::default_{{port.name.lower()}};
+            {{ port.name.lower() }} == local::default_{{ port.name.lower() }};
             {% endif %}
             {% endfor %}
-        })begin 
+        }) begin
             `uvm_error("RANDOMIZE_FAIL", "Failed to randomize the transaction")
         end
 
         finish_item(req);
     endtask
 
-endclass: base_sequence
+endclass : base_sequence

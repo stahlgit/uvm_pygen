@@ -40,17 +40,12 @@ class {{ name }}_random_test extends {{ name }}_base_test;
 
         `uvm_info(get_type_name(), "Starting random test...", UVM_LOW)
 
-        // Wait for reset to deassert before driving stimulus
-        {% if if_name %}
-        m_vif.wait_for_reset();
-        {% endif %}
-
         // Run sequences in parallel on all active agent sequencers
         fork
             {% for agent in active_agents %}
             begin
                 {{ agent.name }}_seq.num_transactions = {{ num_transactions }};
-                {{ agent.name }}_seq.start(m_env.m_{{ agent.name }}.m_alu_agent_sequencer);
+                {{ agent.name }}_seq.start(m_env.m_{{ agent.name }}.m_{{ agent.name }}_sequencer);
             end
             {% endfor %}
         join

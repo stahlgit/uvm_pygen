@@ -1,10 +1,13 @@
 """Concrete generation unit for transaction generation."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import ClassVar
 
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.generation.generation_unit.generation_unit import GenerationUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
+from uvm_pygen.models.logic_schema.env_model import EnvModel
 
 
 @dataclass
@@ -12,27 +15,24 @@ class TransactionUnit(GenerationUnit):
     """GenerationUnit for creating a transaction class based on the model's transaction definition."""
 
     key: str = "transaction"
+    deps: list[str] = field(default_factory=lambda: ["params_pkg"])
 
-    FILES = [FileSpec("logic/transaction.sv.j2", ".sv", subdir="objects")]
+    FILES: ClassVar[list[FileSpec]] = [
+        FileSpec(template="logic/transaction.sv.j2", suffix=".sv", subdir="objects"),
+    ]
 
-    def __post_init__(self):
-        """Set default dependencies after initialization."""
-        self.deps = ["params_pkg"]
+    def _prefix(self, model: EnvModel) -> str:
+        return model.transaction.class_name.lower()
 
-    def run(self, reg: GenerationRegistry) -> None:
-        """Generate the transaction class."""
-        reg.assert_deps(self.deps, self.key)
-        model, renderer, writer = self._infra(reg)
-
-        context = {
+    def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
+        return {
             "trans": model.transaction,
             "project_name": model.project_name,
             "package_name": reg.get_context("package_name", self.key),
         }
-        written = self._render_specs(
-            self.FILES, context, reg, model, renderer, writer, prefix=model.transaction.class_name.lower()
-        )
+
+    def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:
         path = next(iter(written.values()), None)
         reg.register(self.key, path=path, trans_type=model.transaction.class_name)
         if path:
-            reg.context.setdefault("src_files", []).append(self._tcl_path(path, model.testbench_name))
+            self._register_src_file(reg, path, model.testbench_name)

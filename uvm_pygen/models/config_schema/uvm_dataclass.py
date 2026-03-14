@@ -1,13 +1,13 @@
 """UVM models for UVM testbench generation."""
 
-from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
 
 
-@dataclass
-class Component:
+class Component(BaseModel):
     """UVM component definition."""
 
     name: str
@@ -15,15 +15,26 @@ class Component:
     interface: str | None = None
     direction: Direction | None = None
     mode: AgentMode | None = None  # e.g., "active", "passive"
-    subcomponents: dict = field(default_factory=dict)
+
+    # Typed as dict[str, dict] — keys are ComponentType string values
+    # e.g., {"driver": {"enabled": true}, "sequencer": {"enabled": true}}
+    subcomponents: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
     inputs: list[str] | None = None
     comparison_method: str | None = None
     input_from: str | None = None
     behavior: str | dict | None = None
 
+    @field_validator("subcomponents", mode="before")
+    @classmethod
+    def normalise_subcomponents(cls, v: Any) -> dict[str, dict[str, Any]]:
+        """Ensure every subcomponent entry is a dict, never None."""
+        if not isinstance(v, dict):
+            return {}
+        return {k: (val if isinstance(val, dict) else {}) for k, val in v.items()}
 
-@dataclass
-class TransactionField:
+
+class TransactionField(BaseModel):
     """Transaction field definition."""
 
     name: str
@@ -31,8 +42,7 @@ class TransactionField:
     default: Any = None
 
 
-@dataclass
-class Sequence:
+class Sequence(BaseModel):
     """Sequence definition."""
 
     name: str
@@ -48,8 +58,7 @@ class Sequence:
     operation_list: list[str] | None = None
 
 
-@dataclass
-class Coverpoint:
+class Coverpoint(BaseModel):
     """Coverage coverpoint definition."""
 
     name: str
@@ -58,8 +67,7 @@ class Coverpoint:
     type: str = "coverpoint"
 
 
-@dataclass
-class Test:
+class Test(BaseModel):
     """UVM test definition."""
 
     name: str

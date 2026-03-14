@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
 from uvm_pygen.models.config_schema.dut_dataclass import (
     DUTInfo,
@@ -16,21 +17,25 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
 
 
 class DUTConfiguration:
-    """DUT Configuration Model - Single source of truth for DUT settings."""
+    """DUT Configuration Model - Single source of truth for DUT settings.
 
-    ### GROUPING ALLIASES
+    Responsible for loading, parsing, and validating the DUT YAML config.
+    Pydantic models handle per-field type coercion and validation on construction;
+    this class handles cross-object consistency checks that require the full
+    parsed state (enum resolution, group presence, etc.).
+    """
+
+    # --- Group alias sets ---------------------------------------------------
     __CONTROL_ALIASES = {"control", "ctrl", "config", "cfg", "mode", "select", "cmd"}
-
     __DATA_IN_ALIASES = {"input", "data_input", "data_in", "din", "operand", "args"}
-
     __DATA_OUT_ALIASES = {"output", "data_output", "data_out", "dout", "result", "res"}
 
-    def __init__(self, config_path: str) -> None:
+    def __init__(self, config_path: str | Path) -> None:
         """Initialize DUT configuration from YAML file."""
         self.config_path = Path(config_path)
         self._raw_config: dict = {}
 
-        # storage for detected aliases
+        # Detected aliases — populated during validate()
         self.detected_control_aliases: set[str] = set()
         self.detected_data_in_aliases: set[str] = set()
         self.detected_data_out_aliases: set[str] = set()
@@ -38,34 +43,29 @@ class DUTConfiguration:
         self._load()
         self._parse()
 
+    # -------------------------------------------------------------------------
+    # Public API
+    # -------------------------------------------------------------------------
+
     def validate(self) -> list[str]:
         """Validate configuration consistency.
 
+        Performs cross-object checks that cannot be expressed inside a single
+        Pydantic model:
+          - Enum references on ports are resolved to live EnumType objects.
+          - All required port group categories are present.
+
         Returns:
-            list[str]: A list of error messages. Empty if valid.
+            list[str]: Accumulated error messages. Empty list means valid.
         """
-        errors = []
-
-        # Validate and Resolve Port Enums
-        for port in self.ports:
-            if port.enum_name:
-                if port.enum_name in self.enums:
-                    # Link the object for easier access later in UVM gen
-                    port.enum_def = self.enums[port.enum_name]
-                else:
-                    errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
-
-        # Validate Groups (Moved from _resolve_group_aliases logic if you want strictness)
-        try:
-            self._resolve_group_aliases()
-        except ValueError as e:
-            errors.append(str(e))
-
+        errors: list[str] = []
+        errors.extend(self._resolve_port_enums())
+        errors.extend(self._resolve_group_aliases())
         return errors
 
-    def get_enum(self, enam_name: str) -> EnumType | None:
+    def get_enum(self, enum_name: str) -> EnumType | None:
         """Get enum by name."""
-        return self.enums.get(enam_name)
+        return self.enums.get(enum_name)
 
     def get_port(self, port_name: str) -> Port | None:
         """Get port by name."""
@@ -75,15 +75,15 @@ class DUTConfiguration:
         return None
 
     def get_control_ports(self) -> list[Port]:
-        """Get all control ports (non-data)."""
+        """Get all control ports."""
         return [p for p in self.ports if p.group and p.group.lower() in self.__CONTROL_ALIASES]
 
     def get_data_input_ports(self) -> list[Port]:
-        """Get all input ports."""
+        """Get all data input ports."""
         return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_IN_ALIASES]
 
     def get_data_output_ports(self) -> list[Port]:
-        """Get all output ports."""
+        """Get all data output ports."""
         return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_OUT_ALIASES]
 
     def get_ports_by_group(self, group: str) -> list[Port]:
@@ -98,88 +98,114 @@ class DUTConfiguration:
         """Get all reset ports."""
         return [p for p in self.ports if p.is_reset]
 
-    # No longer used but it's a good function for resolving widths in the future if we want to support more complex expressions
     def resolve_width(self, width: Any) -> int:
-        """Resolve width - can be int or parameter reference."""
+        """Resolve width — int, parameter reference, or bus string like '(7:0)'.
+
+        Note: arithmetic expressions such as '(DATA_WIDTH-1:0)' are not supported.
+        """
         if isinstance(width, int):
             return width
 
         if not isinstance(width, str):
-            raise TypeError(f"Width must be int, str, or bus string, got {type(width)}")
+            raise TypeError(f"Width must be int or str, got {type(width)}")
 
-        # Matches (MSB:LSB) or [MSB:LSB] formats
+        # (MSB:LSB) or [MSB:LSB]
         match = re.match(r"\s*[\[\(](?P<msb>\w+)\s*:\s*(?P<lsb>\w+)[\]\)]\s*", width)
         if match:
-            msb_str = match.group("msb")
-            lsb_str = match.group("lsb")
-
-            # For simple integer bus like (3:0)
+            msb_str, lsb_str = match.group("msb"), match.group("lsb")
             if msb_str.isdigit() and lsb_str.isdigit():
-                msb = int(msb_str)
-                lsb = int(lsb_str)
-                # The width is (MSB - LSB + 1). Assumes MSB >= LSB
-                return msb - lsb + 1
-
-            # If MSB/LSB are parameter references (e.g., (DATA_WIDTH-1:0)),
-            # this basic resolve_width cannot handle the arithmetic.
-            # For this simple implementation, we'll raise an error.
+                return int(msb_str) - int(lsb_str) + 1
             raise ValueError(f"Arithmetic in bus width not supported: {width}")
 
-        # Try to resolve from parameters
+        # Parameter reference
         for param in self.parameters:
             if param.name == width:
                 return param.value
 
         raise ValueError(f"Cannot resolve width: {width}")
 
+    # -------------------------------------------------------------------------
+    # Private — loading & parsing
+    # -------------------------------------------------------------------------
+
     def _load(self) -> None:
-        """Load YAML file."""
+        """Load raw YAML into _raw_config."""
         with open(self.config_path) as f:
             self._raw_config = yaml.safe_load(f)
 
     def _parse(self) -> None:
-        """Parse configuration into structured data."""
-        dut_dict = self._raw_config["dut"]
-        self.dut_info = DUTInfo(
-            name=dut_dict["name"],
-            description=dut_dict["description"],
-            data_width=dut_dict["data_width"],
-            output_width=dut_dict.get("output_width", dut_dict["data_width"]),
-            clock_period=dut_dict["clock_period"],
-            reset_type=dut_dict["reset_type"],
-            language=dut_dict["language"],
-        )
+        """Parse raw config dict into Pydantic model instances.
 
-        self.parameters = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
-        self.enums = {}
+        Pydantic raises ValidationError here if any field has a wrong type or
+        value, giving you a precise per-field error message immediately on load
+        rather than a cryptic KeyError/AttributeError later in generation.
+        """
+        try:
+            self.dut_info = DUTInfo(**self._raw_config["dut"])
+        except ValidationError as exc:
+            # Re-raise with context so the caller (ConfigLoader) sees which file failed
+            raise ValueError(f"DUT info validation failed in '{self.config_path}':\n{exc}") from exc
+
+        # Parameters
+        try:
+            self.parameters: list[Parameter] = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
+        except ValidationError as exc:
+            raise ValueError(f"Parameter validation failed in '{self.config_path}':\n{exc}") from exc
+
+        # Enums
+        self.enums: dict[str, EnumType] = {}
         for enum_name, enum_data in self._raw_config.get("enums", {}).items():
-            values = [EnumValue(**v) for v in enum_data["values"]]
-            self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
+            try:
+                values = [EnumValue(**v) for v in enum_data["values"]]
+                self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
+            except ValidationError as exc:
+                raise ValueError(f"Enum '{enum_name}' validation failed in '{self.config_path}':\n{exc}") from exc
 
-        # Ports
-        self.ports = []
-        for port in self._raw_config.get("ports", []):
-            if "enum_def" in port:
-                port["enum_def"] = port.pop("enum_def")
-            self.ports.append(Port(**port))
+        # Ports — strip internal key 'enum_def' if accidentally present in YAML
+        self.ports: list[Port] = []
+        for raw_port in self._raw_config.get("ports", []):
+            raw_port.pop("enum_def", None)
+            try:
+                self.ports.append(Port(**raw_port))
+            except ValidationError as exc:
+                name = raw_port.get("name", "<unknown>")
+                raise ValueError(f"Port '{name}' validation failed in '{self.config_path}':\n{exc}") from exc
 
-        # Operations behavior
+        # Behavior / operand selection
         behavior = self._raw_config.get("behavior", {})
-        self.operand_selection = behavior.get("operand_selection", {})
+        self.operand_selection: dict = behavior.get("operand_selection", {})
 
-    def _resolve_group_aliases(self) -> None:
-        """Identify which aliases are used for port groups and validate presence.
+    # -------------------------------------------------------------------------
+    # Private — cross-object validation helpers
+    # -------------------------------------------------------------------------
 
-        Raises:
-            ValueError: If any required group category is missing.
+    def _resolve_port_enums(self) -> list[str]:
+        """Link enum_name references on ports to live EnumType objects.
+
+        Returns:
+            list[str]: Errors for any unresolved enum reference.
+        """
+        errors: list[str] = []
+        for port in self.ports:
+            if not port.enum_name:
+                continue
+            if port.enum_name in self.enums:
+                # model_copy keeps Pydantic's immutability contract while updating the field
+                object.__setattr__(port, "enum_def", self.enums[port.enum_name])
+            else:
+                errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
+        return errors
+
+    def _resolve_group_aliases(self) -> list[str]:
+        """Detect which group aliases are used and flag missing categories.
+
+        Returns:
+            list[str]: Errors for each missing required group category.
         """
         for port in self.ports:
             if not port.group:
                 continue
-
-            # Normalize to lower case for matching, but store original if preferred
             group_lower = port.group.lower()
-
             if group_lower in self.__CONTROL_ALIASES:
                 self.detected_control_aliases.add(port.group)
             elif group_lower in self.__DATA_IN_ALIASES:
@@ -187,18 +213,18 @@ class DUTConfiguration:
             elif group_lower in self.__DATA_OUT_ALIASES:
                 self.detected_data_out_aliases.add(port.group)
 
-        # Check for missing categories
-        missing_groups = []
+        missing: list[str] = []
         if not self.detected_control_aliases:
-            missing_groups.append("Control (e.g., 'ctrl', 'mode')")
+            missing.append("Control (e.g., 'ctrl', 'mode')")
         if not self.detected_data_in_aliases:
-            missing_groups.append("Data Input (e.g., 'din', 'operand')")
+            missing.append("Data Input (e.g., 'din', 'operand')")
         if not self.detected_data_out_aliases:
-            missing_groups.append("Data Output (e.g., 'dout', 'result')")
+            missing.append("Data Output (e.g., 'dout', 'result')")
 
-        if missing_groups:
-            raise ValueError(
-                f"Configuration Error: The following required port groups are missing from '{self.dut_info.name}': "
-                f"{', '.join(missing_groups)}. "
+        if missing:
+            return [
+                f"Configuration Error: The following required port groups are missing from "
+                f"'{self.dut_info.name}': {', '.join(missing)}. "
                 f"Please ensure ports are assigned valid groups in the YAML config."
-            )
+            ]
+        return []

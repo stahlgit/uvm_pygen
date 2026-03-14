@@ -3,11 +3,12 @@
 # ============================================================================
 dut:
   name: alu
+  entity_name: ALU_ENT   # VHDL entity name; omit for SV/Verilog (defaults to name)
   description: "Arithmetic Logic Unit with 16 operations"
   data_width: 8
   output_width: 16 # may not necessary for now
   clock_period: 10 # ns move to UVM_CONFIG
-  reset_type: sync # sync / async
+  reset_type: active_high # active_low / active_high
   language: systemverilog # verilog / systemverilog / vhdl  maybe not necessary now
 
 # ============================================================================

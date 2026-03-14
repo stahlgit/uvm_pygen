@@ -25,7 +25,7 @@ module {{ testbench_name }}_top;
   );
 
   // DUT instance
-  {{ dut_instance_name }} dut (
+  {{ dut_entity_name }} dut (
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }}),
     {% for port in ports %}

@@ -1,7 +1,5 @@
 """Service to build Logic Models from Raw Configurations."""
 
-from dataclasses import replace
-
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
@@ -56,14 +54,14 @@ class ModelBuilder:
         control_ports = self.loader.dut.get_control_ports()
         data_in_ports = self.loader.dut.get_data_input_ports()
         data_out_ports = self.loader.dut.get_data_output_ports()
-        interface_ports = control_ports + data_in_ports + data_out_ports
         clk_ports = self.loader.dut.get_clock_ports()
         rst_ports = self.loader.dut.get_reset_ports()
+        interface_ports = control_ports + data_in_ports + data_out_ports + clk_ports + rst_ports
 
         resolved_interface_ports = []
         for port in interface_ports:
             resolved_interface_ports.append(
-                replace(port, width=self._get_range_from_port(port))
+                port.model_copy(update={"width": self._get_range_from_port(port)})
             )  # Convert to SV range string
 
         # TODO: create interfaces based on how many are defined in UVM config, right now we will create only one interface
@@ -106,6 +104,7 @@ class ModelBuilder:
             parameters=self.loader.dut.parameters,
             enums=self.loader.dut.enums,
             dut_instance_name=self.loader.dut.dut_info.name,
+            dut_entity_name=self.loader.dut.dut_info.entity_name,
         )
 
     def _build_transaction_model(self) -> TransactionModel:

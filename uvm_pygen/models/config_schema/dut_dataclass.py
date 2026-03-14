@@ -1,16 +1,17 @@
 """DUT models for UVM testbench generation."""
 
-from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from uvm_pygen.constants.uvm_enum import ActiveLevel, Direction
 
 
-@dataclass
-class DUTInfo:
+class DUTInfo(BaseModel):
     """Basic DUT information."""
 
     name: str
+    entity_name: str  # for VHDL; ignored for SV/Verilog (defaults to name)
     data_width: int
     output_width: int
     clock_period: int  # in ns
@@ -18,9 +19,17 @@ class DUTInfo:
     language: str
     description: str | None = None
 
+    @field_validator("data_width", "output_width", "clock_period", mode="before")
+    @classmethod
+    def must_be_positive(cls, v: Any, info) -> int:
+        """Ensure that these fields are positive integers, even if provided as strings in YAML."""
+        v = int(v)
+        if v <= 0:
+            raise ValueError(f"{info.field_name} must be a positive integer, got {v}")
+        return v
 
-@dataclass
-class Parameter:
+
+class Parameter(BaseModel):
     """DUT parameter definition."""
 
     name: str
@@ -28,17 +37,21 @@ class Parameter:
     description: str | None = None
 
 
-@dataclass
-class EnumValue:
+class EnumValue(BaseModel):
     """Single enum value."""
 
     name: str
     value: str
     description: str | None = None
 
+    @field_validator("value", mode="before")
+    @classmethod
+    def coerce_value_to_string(cls, v: Any) -> str:
+        """Automatically convert integers (like 0) from YAML into strings."""
+        return str(v)
 
-@dataclass
-class EnumType:
+
+class EnumType(BaseModel):
     """Enumeration type definition."""
 
     name: str
@@ -64,9 +77,11 @@ class EnumType:
         return [val.name for val in self.values]
 
 
-@dataclass
-class Port:
+class Port(BaseModel):
     """DUT port definition."""
+
+    # Pydantic v2: allow arbitrary types for EnumType in enum_def
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
     direction: Direction
@@ -81,11 +96,35 @@ class Port:
     active_level: ActiveLevel | None = None
 
     enum_name: str | None = None  # reference to EnumType name
-    enum_def: EnumType | None = field(default=None, init=False)  # resolved EnumType
+
+    # Resolved post-load by DUTConfiguration.validate(); excluded from serialization
+    enum_def: EnumType | None = Field(default=None, exclude=True)
+
+    @field_validator("width", mode="before")
+    @classmethod
+    def coerce_width(cls, v: Any) -> Any:
+        """Accept int, string integer, or bus expression string like '(7:0)'."""
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str) and v.strip().isdigit():
+            return int(v.strip())
+        # Bus expression strings are kept as-is; resolved later by DUTConfiguration
+        return v
+
+    @field_validator("active_level", mode="before")
+    @classmethod
+    def map_active_level_aliases(cls, v: Any) -> Any:
+        """Map user-friendly shorthand to the strict ActiveLevel enum strings."""
+        if isinstance(v, str):
+            v_lower = v.lower().strip()
+            if v_lower == "high":
+                return "active_high"
+            if v_lower == "low":
+                return "active_low"
+        return v
 
 
-@dataclass
-class Constraints:
+class Constraints(BaseModel):
     """Constraint definition."""
 
     name: str

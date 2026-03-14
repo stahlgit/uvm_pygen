@@ -1,9 +1,10 @@
 """Concrete generation unit for agent packages."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import ClassVar
 
 from uvm_pygen.constants.uvm_enum import ComponentType
-from uvm_pygen.models.generation.file_spec import FileSpec
+from uvm_pygen.models.generation.file_spec import FileSpec, SpecCondition
 from uvm_pygen.models.generation.generation_unit.generation_unit import GenerationUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
 
@@ -13,27 +14,25 @@ class AgentsUnit(GenerationUnit):
     """Generates all agents and their sub-components."""
 
     key: str = "agents"
+    deps: list[str] = field(default_factory=lambda: ["transaction", "interface"])
 
-    FILES = [
-        FileSpec("components/driver.sv.j2", "_driver.sv"),
-        FileSpec("components/sequencer.sv.j2", "_sequencer.sv"),
-        FileSpec("components/monitor.sv.j2", "_monitor.sv"),
-        FileSpec("components/agent.sv.j2", ".sv"),
-        FileSpec("components/package.sv.j2", "_pkg.sv"),
+    FILES: ClassVar[list[FileSpec]] = [
+        FileSpec(template="components/driver.sv.j2", suffix="_driver.sv"),
+        FileSpec(template="components/sequencer.sv.j2", suffix="_sequencer.sv"),
+        FileSpec(template="components/monitor.sv.j2", suffix="_monitor.sv"),
+        FileSpec(template="components/agent.sv.j2", suffix=".sv"),
+        FileSpec(template="components/package.sv.j2", suffix="_pkg.sv"),
     ]
 
-    _COMPONENT_GUARDS = {
+    # Agent-level guards: keyed by template path, value takes the agent instance.
+    _COMPONENT_GUARDS: ClassVar[dict] = {
         "components/driver.sv.j2": lambda a: a.has(ComponentType.DRIVER),
         "components/sequencer.sv.j2": lambda a: a.has(ComponentType.SEQUENCER),
         "components/monitor.sv.j2": lambda a: a.has(ComponentType.MONITOR),
     }
 
-    def __post_init__(self):
-        """Set default dependencies after initialization."""
-        self.deps = ["transaction", "interface"]
-
     def run(self, reg: GenerationRegistry) -> None:
-        """Generate all agents and their sub-components based on the model."""
+        """Generate all agents and their sub-components."""
         reg.assert_deps(self.deps, self.key)
         model, renderer, writer = self._infra(reg)
 
@@ -46,7 +45,6 @@ class AgentsUnit(GenerationUnit):
         package_name: str = reg.get_context("package_name", self.key)
 
         for agent in model.agents:
-            agent_subdir = f"agents/{agent.name}"
             context = {
                 "agent": agent,
                 "if_name": if_name,
@@ -56,22 +54,35 @@ class AgentsUnit(GenerationUnit):
             }
             # Stamp each spec with the agent's subdir and its per-component guard.
             agent_specs = [
-                FileSpec(
-                    spec.template,
-                    spec.suffix,
-                    subdir=agent_subdir,
-                    condition=(
-                        (lambda guard: lambda _reg, _model: guard(agent))(self._COMPONENT_GUARDS[spec.template])
-                        if spec.template in self._COMPONENT_GUARDS
-                        else None
-                    ),
+                spec.with_subdir(
+                    subdir=f"agents/{agent.name}",
+                    condition=self._make_guard(spec.template, agent),
                 )
                 for spec in self.FILES
             ]
-            written = self._render_specs(agent_specs, context, reg, model, renderer, writer, prefix=agent.name.lower())
-            # Register the pkg path so SimUnit can read it in order.
+            written = self._render_specs(
+                context, reg, model, renderer, writer, prefix=agent.name.lower(), specs=agent_specs
+            )
             pkg_filename = f"{agent.name.lower()}_pkg.sv"
             if pkg_filename in written:
-                reg.context.setdefault("src_files", []).append(self._tcl_path(written[pkg_filename], model.testbench_name))
+                self._register_src_file(reg, written[pkg_filename], model.testbench_name)
 
         reg.register(self.key)
+
+    def _make_guard(self, template: str, agent) -> SpecCondition | None:
+        """Wrap an agent-level guard in the (registry, model) -> bool signature.
+
+        Binds the agent instance eagerly via default argument to avoid the
+        late-binding closure problem that arises inside loops.
+
+        Args:
+            template: Template path used to look up the guard table.
+            agent:    The specific agent instance to bind into the closure.
+
+        Returns:
+            A SpecCondition callable, or None if no guard exists for this template.
+        """
+        raw_guard = self._COMPONENT_GUARDS.get(template)
+        if raw_guard is None:
+            return None
+        return lambda _reg, _model, _agent=agent: raw_guard(_agent)

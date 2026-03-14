@@ -123,6 +123,33 @@ class Port(BaseModel):
                 return "active_low"
         return v
 
+    @field_validator("direction", mode="before")
+    @classmethod
+    def map_direction_aliases(cls, v: Any) -> Any:
+        """Map user-friendly shorthands to the strict Direction enum strings."""
+        if isinstance(v, str):
+            v_norm = v.lower().strip()
+            _aliases = {
+                # INPUT
+                "input": "input",
+                "in": "input",
+                "i": "input",
+                # OUTPUT
+                "output": "output",
+                "out": "output",
+                "o": "output",
+                # INOUT
+                "inout": "inout",
+                "io": "inout",
+                "bidi": "inout",
+                "bidirectional": "inout",
+            }
+            mapped = _aliases.get(v_norm)
+            if mapped is not None:
+                return mapped
+            # Let Pydantic raise a proper validation error for unknown values
+        return v
+
 
 class Constraints(BaseModel):
     """Constraint definition."""

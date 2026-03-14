@@ -102,7 +102,7 @@ ports:
   - name: MOVI
     direction: input
     type: logic
-    width: 4
+    width: (1:0)
     description: "operand B selector"
     group: control
     enum_name: movi_t # could be enum_type or enum
@@ -149,8 +149,15 @@ ports:
   - name: EX_ALU
     direction: output
     type: logic
-    width: OUTPUT_WIDTH # reference parameter
+    width: DATA_WIDTH 
     description: "ALU result (16-bit for multiplication)"
+    group: output
+  
+  - name: ALU_RDY
+    direction: output
+    type: logic
+    width: 1
+    description: "ALU ready signal for handshaking"
     group: output
 
 

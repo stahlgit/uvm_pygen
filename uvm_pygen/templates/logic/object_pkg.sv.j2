@@ -1,0 +1,11 @@
+//------------------------------------------------------------------------------
+// Package: {{trans.class_name.lower()}}_pkg
+// Description: Package containing the UVM transaction
+//------------------------------------------------------------------------------
+
+package {{trans.class_name.lower()}}_pkg;
+    import uvm_pkg::*;
+    `include "uvm_macros.svh"
+
+    `include "{{trans.class_name.lower()}}.sv"
+endpackage: {{trans.class_name.lower()}}_pkg

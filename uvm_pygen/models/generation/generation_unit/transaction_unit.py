@@ -20,6 +20,7 @@ class TransactionUnit(GenerationUnit):
 
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(template="logic/transaction.sv.j2", suffix=".sv", subdir="objects"),
+        FileSpec(template="logic/object_pkg.sv.j2", suffix="_pkg.sv", subdir="objects"),
     ]
 
     def _prefix(self, model: EnvModel) -> str:
@@ -33,9 +34,13 @@ class TransactionUnit(GenerationUnit):
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:
-        path = next(iter(written.values()), None)
-        reg.register(self.key, path=path, trans_type=model.transaction.class_name)
-        if not path:
-            logger.warning("TransactionUnit: No file was written, cannot register src file.")
+        trans_name = model.transaction.class_name.lower()
+        trans_pkg_name = f"{trans_name}_pkg"
+        pkg_filename = f"{trans_name}_pkg.sv"
+
+        reg.register(self.key, trans_type=model.transaction.class_name, trans_pkg_name=trans_pkg_name)
+
+        if pkg_filename not in written:
+            logger.warning("TransactionUnit: pkg file was not written, cannot register src file.")
             return
-        self._register_src_file(reg, path, model.testbench_name)
+        self._register_src_file(reg, written[pkg_filename], model.testbench_name)

@@ -45,6 +45,8 @@ class SequencesUnit(GenerationUnit):
         # Flat shared context — every key is present; each template uses what it needs.
         context = {
             "trans_type": trans_type,
+            "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
+            "package_name": reg.get_context("package_name", self.key),
             "ports": ports,
             "seq_name": "direct_sequence",
             "body": "// User-defined body",

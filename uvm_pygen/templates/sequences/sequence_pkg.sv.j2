@@ -8,8 +8,8 @@ package {{name}}_seq_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
-    // Import the package(s) that contain your transaction items.
-    `include "../objects/alutransaction.sv"
+    import {{ package_name }}::*;
+    import {{ trans_pkg_name }}::*;
 
 
     // Include your sequence class files

@@ -45,7 +45,7 @@ class {{ name }}_random_test extends {{ name }}_base_test;
             {% for agent in active_agents %}
             begin
                 {{ agent.name }}_seq.num_transactions = {{ num_transactions }};
-                {{ agent.name }}_seq.start(m_env.m_{{ agent.name }}.m_{{ agent.name }}_sequencer);
+                {{ agent.name }}_seq.start(m_env.m_{{ agent.name }}.m_sequencer);
             end
             {% endfor %}
         join

@@ -8,9 +8,10 @@ interface {{ if_model.name }}(
     input logic {{ if_model.reset.name if if_model.reset else 'RST' }}
 );
 
-    import {{ package_name }}::*; // Import agent package for Transaction definition
+    import {{ package_name }}::*; 
+    import {{ trans_pkg_name }}::*;
+    import uvm_pkg::*;
     `include "uvm_macros.svh"
-    `include "objects/alutransaction.sv"
 
     //--------------------------------------------------------------------------
     // Signals

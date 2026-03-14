@@ -37,6 +37,7 @@ class InterfaceUnit(GenerationUnit):
             "if_model": if_model,
             "trans": model.transaction,
             "trans_type": reg.get_context("trans_type", self.key),
+            "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
             "package_name": reg.get_context("package_name", self.key),
         }
 

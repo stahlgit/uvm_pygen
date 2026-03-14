@@ -8,22 +8,19 @@ package {{ agent.name }}_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
-    // Import project parameters if generated
-    // import {{ project_name | replace(" ", "_") | lower }}_params_pkg::*;
+    import {{ package_name }}::*;
+    import {{ trans_pkg_name }}::*;
 
     //--------------------------------------------------------------------------
     // Class Definitions
     //--------------------------------------------------------------------------
-    
-    // Transaction
-    `include "../../objects/{{ trans_type | lower }}.sv"
 
     // Components
     {% for part in parts %}
     `include "{{ agent.name }}_{{ part }}.sv"
     {% endfor %}
 
-    // Agent Class
+    // Agent class
     `include "{{ agent.name }}.sv"
 
 endpackage : {{ agent.name }}_pkg

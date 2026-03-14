@@ -49,6 +49,7 @@ class AgentsUnit(GenerationUnit):
                 "agent": agent,
                 "if_name": if_name,
                 "trans_type": trans_type,
+                "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
                 "package_name": package_name,
                 "parts": agent.parts,
             }

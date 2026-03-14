@@ -6,45 +6,49 @@
 class {{ agent.name }}_monitor extends uvm_monitor;
     `uvm_component_utils({{ agent.name }}_monitor)
 
-    // Virtual Interface
+    //--------------------------------------------------------------------------
+    // Virtual interface handle
+    //--------------------------------------------------------------------------
     virtual {{ if_name }} vif;
 
-    // Analysis Port
+    //--------------------------------------------------------------------------
+    // Analysis port
+    //--------------------------------------------------------------------------
     uvm_analysis_port #({{ trans_type }}) analysis_port;
 
+    //--------------------------------------------------------------------------
     // Constructor
+    //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
         super.new(name, parent);
     endfunction
 
-    // Build Phase
+    //--------------------------------------------------------------------------
+    // Build Phase – create analysis port, retrieve vif from resource_db
+    //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
+        uvm_resource #(virtual {{ if_name }}) vif_res;
         super.build_phase(phase);
+
         analysis_port = new("analysis_port", this);
 
-        // Get interface
-        if(!uvm_config_db#(virtual {{ if_name }})::get(this, "", "vif", vif)) begin
-            `uvm_fatal("NOVIF", {"Virtual interface must be set for: ", get_full_name(), ".vif"});
-        end
+        vif_res = uvm_resource_db #(virtual {{ if_name }})::get_by_name("*", "vif", 0);
+        if (vif_res == null)
+            `uvm_fatal("NOVIF", {"Virtual interface not found in resource_db for: ", get_full_name()})
+        vif = vif_res.read(this);
     endfunction
 
-    // Run Phase
+    //--------------------------------------------------------------------------
+    // Run Phase – sample on every clock edge via cbm, broadcast to analysis port
+    //--------------------------------------------------------------------------
     task run_phase(uvm_phase phase);
         {{ trans_type }} item;
-        
-        // Wait for reset/clock
-        // @(posedge vif.CLK); // TODO: Use clock from interface config
 
         forever begin
+            @(vif.cbm);
             item = {{ trans_type }}::type_id::create("item");
-            
-            // TODO: Add Logic based on 'config_dut.yaml'
-            // Example:
-            // @(posedge vif.CLK);
-            // if (vif.monitor_cb.valid) begin
-            //    item.data = vif.monitor_cb.data;
-            //    analysis_port.write(item);
-            // end
+            vif.monitor(item);
+            analysis_port.write(item);
         end
     endtask
 

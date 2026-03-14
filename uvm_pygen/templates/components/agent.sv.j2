@@ -1,57 +1,54 @@
 //------------------------------------------------------------------------------
 // Class: {{ agent.name }}
 // Description: Agent container for {{ agent.name }}
-// Mode: {%if agent.mode.value == "active"%}Active{%else%}Passive{%endif%} 
+// Mode: {% if agent.mode.value == "active" %}Active{% else %}Passive{% endif %}
 //------------------------------------------------------------------------------
 
 class {{ agent.name }} extends uvm_agent;
     `uvm_component_utils({{ agent.name }})
 
-    // Components
+    //--------------------------------------------------------------------------
+    // Component handles
+    //--------------------------------------------------------------------------
     {% for part in agent.parts %}
-    {{ agent.name }}_{{ part }} m_{{ agent.name }}_{{ part }};
+    {{ agent.name }}_{{ part }} m_{{ part }};
     {% endfor %}
 
-    // Analysis Port (Pass-through from Monitor)
+    //--------------------------------------------------------------------------
+    // Analysis Port (pass-through from monitor)
+    //--------------------------------------------------------------------------
     uvm_analysis_port #({{ trans_type }}) analysis_port;
 
+    //--------------------------------------------------------------------------
     // Constructor
+    //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
         super.new(name, parent);
     endfunction
 
-    // Build Phase
+    //--------------------------------------------------------------------------
+    // Build Phase – construct sub-components
+    //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
 
         {% for part in agent.parts %}
-        m_{{ agent.name }}_{{ part }} = {{ agent.name }}_{{ part }}::type_id::create("m_{{ agent.name }}_{{ part }}", this);
+        m_{{ part }} = {{ agent.name }}_{{ part }}::type_id::create("m_{{ part }}", this);
         {% endfor %}
     endfunction
 
-    // Connect Phase
+    //--------------------------------------------------------------------------
+    // Connect Phase – wire sequencer→driver and expose analysis port
+    //--------------------------------------------------------------------------
     function void connect_phase(uvm_phase phase);
-        virtual {{ if_name }} vif;
-
         super.connect_phase(phase);
 
-        // Retrieve VIF from Config DB to pass to sub-components
-        if (!uvm_config_db#(virtual {{ if_name }})::get(this, "", "vif", vif)) begin
-            `uvm_fatal("NOVIF", "Virtual interface not found in Agent config_db")
-        end
-
-        // Connect Monitor VIF
-        m_{{ agent.name }}_monitor.vif = vif;
-        
-        // Connect Analysis Port
-        analysis_port = m_{{ agent.name }}_monitor.analysis_port;
+        // Expose monitor analysis port at agent level
+        analysis_port = m_monitor.analysis_port;
 
         {% if agent.mode.value == "active" %}
-        // Connect Driver VIF
-        m_{{ agent.name }}_driver.vif = vif;
-        
-        // Connect Driver and Sequencer
-        m_{{ agent.name }}_driver.seq_item_port.connect(m_{{ agent.name }}_sequencer.seq_item_export);
+        // Connect driver ↔ sequencer TLM path
+        m_driver.seq_item_port.connect(m_sequencer.seq_item_export);
         {% endif %}
     endfunction
 

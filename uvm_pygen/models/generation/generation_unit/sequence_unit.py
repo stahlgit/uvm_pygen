@@ -7,6 +7,7 @@ from typing import ClassVar
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.generation.generation_unit.generation_unit import GenerationUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
+from uvm_pygen.services.utils.logger import logger
 
 
 @dataclass
@@ -68,5 +69,8 @@ class SequencesUnit(GenerationUnit):
 
         seq_pkg_name = f"{model.dut_instance_name}_seq_pkg"
         reg.register(self.key, seq_pkg_name=seq_pkg_name, seq_names=self._SEQ_NAMES)
-        if pkg_path:
-            self._register_src_file(reg, pkg_path, model.testbench_name)
+        if not pkg_path:
+            logger.warning("SequencesUnit: No package file was written, cannot register src file.")
+            return
+
+        self._register_src_file(reg, pkg_path, model.testbench_name)

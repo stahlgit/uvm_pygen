@@ -48,5 +48,7 @@ class InterfaceUnit(GenerationUnit):
 
         path = next(iter(written.values()), None)
         reg.register(self.key, path=path, if_name=model.interfaces[0].name)
-        if path:
-            self._register_src_file(reg, path, model.testbench_name)
+        if not path:
+            logger.warning("InterfaceUnit: No file was written, cannot register src file.")
+            return
+        self._register_src_file(reg, path, model.testbench_name)

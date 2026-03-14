@@ -16,7 +16,7 @@ class TopUnit(GenerationUnit):
     """Generates the top-level testbench module, connecting interfaces and agents."""
 
     key: str = "top"
-    deps: list[str] = field(default_factory=lambda: ["interface", "agents"])
+    deps: list[str] = field(default_factory=lambda: ["interface", "agents", "env", "tests"])
 
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(

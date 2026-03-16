@@ -17,7 +17,7 @@ module {{ testbench_name }}_top;
   logic {{ reset.name }};
 
   // Interface instance
-  {{ interface.name }} intf (
+  {{ interface.name }} vif (
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }})
   );
@@ -27,7 +27,7 @@ module {{ testbench_name }}_top;
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }}),
     {% for port in ports %}
-    .{{ port.name }}(intf.{{ port.name }}){% if not loop.last %},{% endif %}
+    .{{ port.name }}(vif.{{ port.name }}){% if not loop.last %},{% endif %}
     {% endfor %}
   );
 
@@ -46,7 +46,7 @@ module {{ testbench_name }}_top;
 
   // UVM test start
   initial begin
-    uvm_resource_db #(virtual {{ interface.name }})::set("*", "vif", intf);
+    uvm_resource_db #(virtual {{ interface.name }})::set("*", "vif", vif);
     run_test();
   end
 

@@ -1,7 +1,6 @@
 """Simulation TCL generation unit."""
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import ClassVar
 
 from uvm_pygen.models.generation.file_spec import FileSpec
@@ -26,9 +25,8 @@ class SimUnit(GenerationUnit):
         tb = model.testbench_name
         # Top is always last in compile order — appended here rather than in
         # TopUnit, which executes before env/tests in topo order.
-        top_path = Path(tb) / f"{tb}_top.sv"
-        src_files = reg.context.get("src_files", []) + [self._tcl_path(top_path, tb)]
-        logger.debug(f"SimUnit: adding top {top_path} to src_files")
+        # top_path = Path(tb) / f"{tb}_top.sv"
+        src_files = reg.context.get("src_files", [])
         logger.debug(f"SimUnit: src_files now {src_files}")
         return {
             "project_name": model.project_name,

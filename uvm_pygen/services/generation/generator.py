@@ -79,6 +79,7 @@ class Generator:
     """Orchestrates GenerationUnits via topological stort."""
 
     def __init__(self, env_model: EnvModel):
+        """Initialize Generator with the provided environment model."""
         self.model = env_model
         self.renderer = TemplateRenderer()
         self.writer = FileManager(env_model.testbench_name)

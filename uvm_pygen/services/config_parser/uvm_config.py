@@ -1,5 +1,7 @@
 """UVM Configuration Model."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import yaml
@@ -24,6 +26,28 @@ class UVMConfiguration:
         self.interface_list: list[str] = []
         self._load()
         self._parse()
+
+    @classmethod
+    def from_dict(cls, raw: dict, source_label: str = "<in-memory>") -> UVMConfiguration:
+        """Construct a UVMConfiguration from an already-loaded dict.
+
+        This is used when the config comes from a unified YAML file that has
+        already been read and split by ``config_resolver.split_unified_config``.
+
+        Parameters
+        ----------
+        raw:
+            Dict with the same structure as a UVM YAML file (``verification``,
+            ``environment``, ``transactions``, ``sequences``, … keys at top level).
+        source_label:
+            Human-readable label used in error messages (e.g. the unified file path).
+        """
+        instance = cls.__new__(cls)
+        instance.config_path = Path(source_label)
+        instance._raw_config = raw
+        instance.interface_list = []
+        instance._parse()
+        return instance
 
     # -------------------------------------------------------------------------
     # Public API
@@ -62,6 +86,8 @@ class UVMConfiguration:
         Each section is wrapped in its own try/except so a bad 'components'
         entry does not swallow errors from 'sequences', etc.
         """
+        source = str(self.config_path)
+
         # Verification metadata
         verif = self._raw_config.get("verification", {})
         self.project_name: str = verif.get("project_name", "uvm_project")
@@ -78,7 +104,7 @@ class UVMConfiguration:
                 self.components.append(Component(**raw_comp))
             except ValidationError as exc:
                 name = raw_comp.get("name", "<unknown>")
-                raise ValueError(f"Component '{name}' validation failed in '{self.config_path}':\n{exc}") from exc
+                raise ValueError(f"Component '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Transaction
         trans = self._raw_config.get("transactions", {})
@@ -91,9 +117,7 @@ class UVMConfiguration:
                 self.field_overrides.append(TransactionField(**raw_field))
             except ValidationError as exc:
                 name = raw_field.get("name", "<unknown>")
-                raise ValueError(
-                    f"TransactionField '{name}' validation failed in '{self.config_path}':\n{exc}"
-                ) from exc
+                raise ValueError(f"TransactionField '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Sequences
         self.sequences: list[Sequence] = []
@@ -102,7 +126,7 @@ class UVMConfiguration:
                 self.sequences.append(Sequence(**raw_seq))
             except ValidationError as exc:
                 name = raw_seq.get("name", "<unknown>")
-                raise ValueError(f"Sequence '{name}' validation failed in '{self.config_path}':\n{exc}") from exc
+                raise ValueError(f"Sequence '{name}' validation failed in '{source}':\n{exc}") from exc
 
     # -------------------------------------------------------------------------
     # Private — cross-object validation helpers
@@ -114,7 +138,6 @@ class UVMConfiguration:
         for component in self.components:
             if ComponentType(component.type) == ComponentType.AGENT:
                 errors.extend(self._validate_agent(component))
-            # Future: add other ComponentType checks here
         return errors
 
     def _validate_agent(self, component: Component) -> list[str]:
@@ -133,7 +156,6 @@ class UVMConfiguration:
 
     def _ensure_subcomponent_enabled(self, parent: Component, sub_type: ComponentType) -> list[str]:
         """Return an error list if a required subcomponent is absent or disabled."""
-        # subcomponents keys are ComponentType string values (e.g. "driver")
         sub = parent.subcomponents.get(sub_type.value) or parent.subcomponents.get(sub_type.name.lower())
         if not sub or not sub.get("enabled", False):
             return [f"Active agent '{parent.name}' must have an enabled {sub_type.name.lower()} component."]

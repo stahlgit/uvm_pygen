@@ -1,0 +1,136 @@
+# ============================================================================
+# Unified Configuration — DUT + UVM in a single file
+# UVM_PYGEN detects this automatically (both 'dut:' and UVM keys present),
+# or you can point to it explicitly with:  uvm_pygen --config config.yaml
+# ============================================================================
+
+# ============================================================================
+# DUT — Hardware Description
+# ============================================================================
+dut:
+  name: alu
+  entity_name: ALU_ENT
+  description: "Arithmetic Logic Unit with 16 operations"
+  data_width: 8
+  output_width: 16
+  clock_period: 10        # ns
+  reset_type: active_high # active_low / active_high
+  language: systemverilog
+
+parameters:
+  - name: DATA_WIDTH
+    value: 8
+    description: "Width of data operands"
+  - name: OUTPUT_WIDTH
+    value: 16
+    description: "Width of output (for multiplication)"
+  - name: MAX_VALUE
+    value: 255
+    description: "Maximum value for data operands (for constraints)"
+
+enums:
+  operation_t:
+    type: "logic [3:0]"
+    values:
+      - { value: 0,  name: ADD,         description: "Addition" }
+      - { value: 1,  name: SUB,         description: "Subtraction" }
+      - { value: 2,  name: MULT,        description: "Multiplication" }
+      - { value: 3,  name: AND,         description: "Bitwise AND" }
+      - { value: 4,  name: OR,          description: "Bitwise OR" }
+      - { value: 5,  name: XOR,         description: "Bitwise XOR" }
+      - { value: 6,  name: SHIFT_LEFT,  description: "Logical shift left" }
+      - { value: 7,  name: SHIFT_RIGHT, description: "Logical shift right" }
+      - { value: 8,  name: ROTATE_LEFT, description: "Rotate left" }
+      - { value: 9,  name: ROTATE_RIGHT,description: "Rotate right" }
+      - { value: 10, name: NOT,         description: "Bitwise NOT" }
+      - { value: 11, name: NAND,        description: "Bitwise NAND" }
+      - { value: 12, name: NOR,         description: "Bitwise NOR" }
+      - { value: 13, name: XNOR,        description: "Bitwise XNOR" }
+      - { value: 14, name: INC,         description: "Increment" }
+      - { value: 15, name: DEC,         description: "Decrement" }
+
+  movi_t:
+    type: "logic [1:0]"
+    values:
+      - { value: 0, name: REGB_OPERAND, description: "Use REG_B as operand" }
+      - { value: 1, name: MEM_OPERAND,  description: "Use MEM as operand" }
+      - { value: 2, name: IMM_OPERAND,  description: "Use IMM as operand" }
+      - { value: 3, name: UNKNOWN,      description: "Invalid - should not be used" }
+
+ports:
+  - { name: CLK,        direction: input,  type: logic, width: 1,          is_clock: true,  description: "Clock signal" }
+  - { name: RST,        direction: input,  type: logic, width: 1,          is_reset: true,  active_level: high, description: "Reset signal (synchronous)" }
+  - { name: ACT,        direction: input,  type: logic, width: 1,          group: control,  description: "Activate signal" }
+  - { name: OP,         direction: input,  type: logic, width: "(3:0)",    group: control,  enum_name: operation_t, description: "Operation selector" }
+  - { name: MOVI,       direction: input,  type: logic, width: "(1:0)",    group: control,  enum_name: movi_t,      description: "Operand B selector" }
+  - { name: REG_A,      direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Register A operand" }
+  - { name: REG_B,      direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Register B operand" }
+  - { name: MEM,        direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Memory operand" }
+  - { name: IMM,        direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Immediate operand" }
+  - { name: EX_ALU_VLD, direction: output, type: logic, width: 1,          group: output,   description: "Output valid signal" }
+  - { name: EX_ALU,     direction: output, type: logic, width: DATA_WIDTH, group: output,   description: "ALU result" }
+  - { name: ALU_RDY,    direction: output, type: logic, width: 1,          group: output,   description: "ALU ready signal" }
+
+# ============================================================================
+# UVM — Verification Environment
+# ============================================================================
+verification:
+  project_name: "ALU Functional Verification"
+  testbench_name: "NEXT_TESTBENCH"
+  uvm_version: "1.2"
+
+environment:
+  name: alu_env
+  type: uvm_env
+  components:
+    - name: alu_agent
+      type: uvm_agent
+      mode: active
+      interface: alu_if
+      subcomponents:
+        driver:    { enabled: true, type: uvm_driver }
+        sequencer: { enabled: true, type: uvm_sequencer }
+        monitor:   { enabled: true, type: uvm_monitor }
+        coverage:  { enabled: true, type: uvm_subscriber }
+
+    - name: output_agent
+      type: uvm_agent
+      mode: passive
+      interface: alu_if
+      direction: output
+      subcomponents:
+        monitor:  { enabled: true, type: uvm_monitor }
+        coverage: { enabled: true, type: uvm_subscriber }
+
+transactions:
+  name: AluTransaction
+  base_class: uvm_sequence_item
+  field_overrides:
+    - { name: rst,  randomize: false, default: 0 }
+    - { name: act,  randomize: false, default: 1 }
+    - { name: op,   randomize: true }
+    - { name: movi, randomize: true }
+
+# sequences: []   # add sequences here when needed
+
+simulation:
+  compilation:
+    options:
+      - "+incdir+./agents"
+      - "-timescale 1ps/1ps"
+      - "-sv"
+      - "+define+UVM_NO_DEPRECATED"
+  elaboration:
+    options:
+      - "-uvmcontrol=all"
+  simulation_options:
+    default_test: random_test
+    verbosity: UVM_MEDIUM
+    coverage: true
+  waveform:
+    enabled: true
+    format: wlf
+    save_signals: ["/*"]
+
+randomization:
+  seed: 12345

@@ -1,5 +1,7 @@
 """DUT Configuration Parser and Model."""
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import Any
@@ -31,7 +33,11 @@ class DUTConfiguration:
     __DATA_OUT_ALIASES = {"output", "data_output", "data_out", "dout", "result", "res"}
 
     def __init__(self, config_path: str | Path) -> None:
-        """Initialize DUT configuration from YAML file."""
+        """Initialize DUT configuration from YAML file.
+
+        Args:
+            config_path: Path to the DUT YAML configuration file.
+        """
         self.config_path = Path(config_path)
         self._raw_config: dict = {}
 
@@ -42,6 +48,30 @@ class DUTConfiguration:
 
         self._load()
         self._parse()
+
+    @classmethod
+    def from_dict(cls, raw: dict, source_label: str = "<in-memory>") -> DUTConfiguration:
+        """Construct a DUTConfiguration from an already-loaded dict.
+
+        This is used when the config comes from a unified YAML file that has
+        already been read and split by ``config_resolver.split_unified_config``.
+
+        Args:
+            raw: Dict with the same structure as a DUT YAML file (``dut``, ``parameters``,
+                ``enums``, ``ports``, … keys at the top level).
+            source_label: Human-readable label used in error messages (e.g. the unified file path).
+
+        Returns:
+            DUTConfiguration: A new instance initialized from the provided dict.
+        """
+        instance = cls.__new__(cls)
+        instance.config_path = Path(source_label)
+        instance._raw_config = raw
+        instance.detected_control_aliases = set()
+        instance.detected_data_in_aliases = set()
+        instance.detected_data_out_aliases = set()
+        instance._parse()
+        return instance
 
     # -------------------------------------------------------------------------
     # Public API
@@ -64,44 +94,95 @@ class DUTConfiguration:
         return errors
 
     def get_enum(self, enum_name: str) -> EnumType | None:
-        """Get enum by name."""
+        """Get enum by name.
+
+        Args:
+            enum_name: Name of the enum to retrieve.
+
+        Returns:
+            EnumType | None: The enum type if found, None otherwise.
+        """
         return self.enums.get(enum_name)
 
     def get_port(self, port_name: str) -> Port | None:
-        """Get port by name."""
+        """Get port by name.
+
+        Args:
+            port_name: Name of the port to retrieve.
+
+        Returns:
+            Port | None: The port if found, None otherwise.
+        """
         for port in self.ports:
             if port.name == port_name:
                 return port
         return None
 
     def get_control_ports(self) -> list[Port]:
-        """Get all control ports."""
+        """Get all control ports.
+
+        Returns:
+            list[Port]: List of ports in control group.
+        """
         return [p for p in self.ports if p.group and p.group.lower() in self.__CONTROL_ALIASES]
 
     def get_data_input_ports(self) -> list[Port]:
-        """Get all data input ports."""
+        """Get all data input ports.
+
+        Returns:
+            list[Port]: List of ports in data input group.
+        """
         return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_IN_ALIASES]
 
     def get_data_output_ports(self) -> list[Port]:
-        """Get all data output ports."""
+        """Get all data output ports.
+
+        Returns:
+            list[Port]: List of ports in data output group.
+        """
         return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_OUT_ALIASES]
 
     def get_ports_by_group(self, group: str) -> list[Port]:
-        """Get ports by group name."""
+        """Get ports by group name.
+
+        Args:
+            group: Name of the group to filter by.
+
+        Returns:
+            list[Port]: List of ports matching the group.
+        """
         return [p for p in self.ports if p.group and p.group.lower() == group.lower()]
 
     def get_clock_ports(self) -> list[Port]:
-        """Get all clock ports."""
+        """Get all clock ports.
+
+        Returns:
+            list[Port]: List of ports marked as clock.
+        """
         return [p for p in self.ports if p.is_clock]
 
     def get_reset_ports(self) -> list[Port]:
-        """Get all reset ports."""
+        """Get all reset ports.
+
+        Returns:
+            list[Port]: List of ports marked as reset.
+        """
         return [p for p in self.ports if p.is_reset]
 
     def resolve_width(self, width: Any) -> int:
         """Resolve width — int, parameter reference, or bus string like '(7:0)'.
 
         Note: arithmetic expressions such as '(DATA_WIDTH-1:0)' are not supported.
+
+        Args:
+            width: Width as int, parameter name, or bus notation string.
+
+        Returns:
+            int: The resolved width value.
+
+        Raises:
+            TypeError: If width is not int or str.
+            ValueError: If width cannot be resolved or contains unsupported arithmetic.
         """
         if isinstance(width, int):
             return width
@@ -139,18 +220,22 @@ class DUTConfiguration:
         Pydantic raises ValidationError here if any field has a wrong type or
         value, giving you a precise per-field error message immediately on load
         rather than a cryptic KeyError/AttributeError later in generation.
+
+        Raises:
+            ValueError: If validation fails for DUT info, parameters, enums, or ports.
         """
+        source = str(self.config_path)
+
         try:
             self.dut_info = DUTInfo(**self._raw_config["dut"])
         except ValidationError as exc:
-            # Re-raise with context so the caller (ConfigLoader) sees which file failed
-            raise ValueError(f"DUT info validation failed in '{self.config_path}':\n{exc}") from exc
+            raise ValueError(f"DUT info validation failed in '{source}':\n{exc}") from exc
 
         # Parameters
         try:
             self.parameters: list[Parameter] = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
         except ValidationError as exc:
-            raise ValueError(f"Parameter validation failed in '{self.config_path}':\n{exc}") from exc
+            raise ValueError(f"Parameter validation failed in '{source}':\n{exc}") from exc
 
         # Enums
         self.enums: dict[str, EnumType] = {}
@@ -159,7 +244,7 @@ class DUTConfiguration:
                 values = [EnumValue(**v) for v in enum_data["values"]]
                 self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
             except ValidationError as exc:
-                raise ValueError(f"Enum '{enum_name}' validation failed in '{self.config_path}':\n{exc}") from exc
+                raise ValueError(f"Enum '{enum_name}' validation failed in '{source}':\n{exc}") from exc
 
         # Ports — strip internal key 'enum_def' if accidentally present in YAML
         self.ports: list[Port] = []
@@ -169,7 +254,7 @@ class DUTConfiguration:
                 self.ports.append(Port(**raw_port))
             except ValidationError as exc:
                 name = raw_port.get("name", "<unknown>")
-                raise ValueError(f"Port '{name}' validation failed in '{self.config_path}':\n{exc}") from exc
+                raise ValueError(f"Port '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Behavior / operand selection
         behavior = self._raw_config.get("behavior", {})
@@ -190,7 +275,6 @@ class DUTConfiguration:
             if not port.enum_name:
                 continue
             if port.enum_name in self.enums:
-                # model_copy keeps Pydantic's immutability contract while updating the field
                 object.__setattr__(port, "enum_def", self.enums[port.enum_name])
             else:
                 errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")

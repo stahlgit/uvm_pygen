@@ -23,7 +23,11 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
         super.new(name);
     endfunction
 
-    `uvm_declare_p_sequencer(uvm_sequencer #({{ trans_type }}))
+    // NOTE: If your derived sequence needs direct sequencer access (e.g. config objects),
+    // add to the derived class:
+    //   `uvm_declare_p_sequencer(<agent_name>_sequencer)
+    // and import the agent package in the sequence pkg.
+
 
     task body();
         req = seq_item_t::type_id::create("req");

@@ -8,13 +8,23 @@ from uvm_pygen.constants.uvm_enum import ActiveLevel, Direction
 
 
 class DUTInfo(BaseModel):
-    """Basic DUT information."""
+    """Basic DUT information.
+
+    Top-level YAML key: ``dut``  (required — its presence identifies a DUT config).
+    """
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_schema_extra={"yaml_section": "dut", "yaml_key": "dut", "required": True},
+    )
 
     name: str
     entity_name: str  # for VHDL; ignored for SV/Verilog (defaults to name)
+    ###NOTE: this feels redundant
     data_width: int
     output_width: int
     clock_period: int  # in ns
+    ###
     reset_type: ActiveLevel
     language: str
     description: str | None = None
@@ -30,7 +40,14 @@ class DUTInfo(BaseModel):
 
 
 class Parameter(BaseModel):
-    """DUT parameter definition."""
+    """DUT parameter definition.
+
+    Top-level YAML key: ``parameters``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "dut", "yaml_key": "parameters"},
+    )
 
     name: str
     value: Any
@@ -38,7 +55,7 @@ class Parameter(BaseModel):
 
 
 class EnumValue(BaseModel):
-    """Single enum value."""
+    """Single enum value — nested inside ``EnumType``, not a top-level YAML key."""
 
     name: str
     value: str
@@ -52,7 +69,14 @@ class EnumValue(BaseModel):
 
 
 class EnumType(BaseModel):
-    """Enumeration type definition."""
+    """Enumeration type definition.
+
+    Top-level YAML key: ``enums``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "dut", "yaml_key": "enums"},
+    )
 
     name: str
     type: str
@@ -78,10 +102,15 @@ class EnumType(BaseModel):
 
 
 class Port(BaseModel):
-    """DUT port definition."""
+    """DUT port definition.
 
-    # Pydantic v2: allow arbitrary types for EnumType in enum_def
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    Top-level YAML key: ``ports``
+    """
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_schema_extra={"yaml_section": "dut", "yaml_key": "ports"},
+    )
 
     name: str
     direction: Direction
@@ -152,7 +181,14 @@ class Port(BaseModel):
 
 
 class Constraints(BaseModel):
-    """Constraint definition."""
+    """Constraint definition.
+
+    Top-level YAML key: ``constraints``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "dut", "yaml_key": "constraints"},
+    )
 
     name: str
     description: str

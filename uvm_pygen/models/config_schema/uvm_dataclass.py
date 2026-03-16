@@ -2,13 +2,21 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
 
 
 class Component(BaseModel):
-    """UVM component definition."""
+    """UVM component definition.
+
+    Top-level YAML key: ``environment`` → ``components``
+    The owning key is ``environment`` (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "environment", "required": True},
+    )
 
     name: str
     type: ComponentType
@@ -35,7 +43,14 @@ class Component(BaseModel):
 
 
 class TransactionField(BaseModel):
-    """Transaction field definition."""
+    """Transaction field definition.
+
+    Top-level YAML key: ``transactions``  (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "transactions", "required": True},
+    )
 
     name: str
     randomize: bool
@@ -43,7 +58,14 @@ class TransactionField(BaseModel):
 
 
 class Sequence(BaseModel):
-    """Sequence definition."""
+    """Sequence definition.
+
+    Top-level YAML key: ``sequences``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "sequences"},
+    )
 
     name: str
     type: str
@@ -59,7 +81,14 @@ class Sequence(BaseModel):
 
 
 class Coverpoint(BaseModel):
-    """Coverage coverpoint definition."""
+    """Coverage coverpoint definition.
+
+    Top-level YAML key: ``coverage``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "coverage"},
+    )
 
     name: str
     sample_field: str
@@ -68,7 +97,14 @@ class Coverpoint(BaseModel):
 
 
 class Test(BaseModel):
-    """UVM test definition."""
+    """UVM test definition.
+
+    Top-level YAML key: ``tests``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "tests"},
+    )
 
     name: str
     type: str
@@ -83,3 +119,40 @@ class Test(BaseModel):
     build_phase: str = "default"
     run_phase: str = "default"
     coverage_goal: int | None = None
+
+
+class VerificationInfo(BaseModel):
+    """Verification environment metadata.
+
+    Top-level YAML key: ``verification``  (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "verification", "required": True},
+    )
+
+    project_name: str = "uvm_project"
+    testbench_name: str = "tb_top"
+    uvm_version: str = "1.2"
+
+
+class SimulationConfig(BaseModel):
+    """Simulation options.
+
+    Top-level YAML key: ``simulation``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "simulation"},
+    )
+
+
+class RandomizationConfig(BaseModel):
+    """Randomization control.
+
+    Top-level YAML key: ``randomization``
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "randomization"},
+    )

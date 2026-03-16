@@ -54,7 +54,6 @@ class {{ trans.class_name }} extends uvm_sequence_item;
         super.new(name);
     endfunction
 
-    // should i do do_copy, do_compare, do_print ?
     function void do_copy (uvm_object rhs);
         {{ trans.class_name}} rhs_;
 
@@ -69,6 +68,34 @@ class {{ trans.class_name }} extends uvm_sequence_item;
         {% endfor %}
     endfunction: do_copy
 
+    function bit do_compare(uvm_object rhs, uvm_comparer comparer);
+        {{ trans.class_name }} rhs_;
+        do_compare = super.do_compare(rhs, comparer);
+
+        if (!$cast(rhs_, rhs))
+            `uvm_error("do_compare", "$cast failed for {{ trans.class_name }}.do_compare()")
+        if (rhs_ == null)
+            `uvm_error("do_compare", "$cast resulted in NULL handle.")
+
+        // Stimulus fields – compared for sequence tracking
+        {% for var in trans.rand_variables %}
+        do_compare &= comparer.compare_field("{{ var.name }}", {{ var.name }}, rhs_.{{ var.name }}, $bits({{ var.name }}));
+        {% endfor %}
+
+        // Response fields – uncomment when used in scoreboard
+        {% for var in trans.nonrand_variables %}
+        // do_compare &= comparer.compare_field("{{ var.name }}", {{ var.name }}, rhs_.{{ var.name }}, $bits({{ var.name }}));
+        {% endfor %}
+
+        return do_compare;
+    endfunction : do_compare
+
+    function void do_record(uvm_recorder recorder);
+        super.do_record(recorder);
+        {% for var in trans.variables %}
+        `uvm_record_field("{{ var.name }}", {{ var.name }})
+        {% endfor %}
+    endfunction : do_record
 
 
     // Convert to String
@@ -99,5 +126,3 @@ class {{ trans.class_name }} extends uvm_sequence_item;
     endfunction : convert2string
 
 endclass : {{ trans.class_name }}
-
-//TODO: do_record, do_print, do_compare, etc.

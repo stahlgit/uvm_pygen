@@ -117,7 +117,12 @@ proc compile_sources { LIBRARY HDL_DIRECTORY } {
     quietly set prev_error_msg ERROR_MESSAGE
     quietly set ERROR_MESSAGE "Compilation error has been encountered."
 
+    # Force clean rebuild — removes stale _opt and compiled objects
+    if { [file exists $LIBRARY] } {
+        vdel -lib $LIBRARY -all
+    }
     vlib $LIBRARY
+    vmap $LIBRARY $LIBRARY
 
     # DUT
     quietly set CODE_COVERAGE_FLAGS "+cover=sbcef -nowarn 13"

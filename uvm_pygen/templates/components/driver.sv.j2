@@ -46,7 +46,6 @@ class {{ agent.name }}_driver extends uvm_driver #({{ trans_type }});
     // Drive Item – uses the interface drive() task defined in {{ if_name }}
     //--------------------------------------------------------------------------
     virtual task drive_item({{ trans_type }} item);
-        @(vif.cb);
         vif.drive(item);
     endtask
 

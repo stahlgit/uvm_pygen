@@ -58,6 +58,7 @@ interface {{ if_model.name }}(
     // Drive Task: Pushes transaction fields to interface
     task automatic drive({{ trans_type }} t);
         // Assign transaction variables to clocking block outputs
+        @(cb);
         {% for var in trans.variables %}
         {% for port in if_model.ports if port.direction == 'input' %}
         {% if var.name|upper == port.name|upper %}

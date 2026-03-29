@@ -1,0 +1,68 @@
+//------------------------------------------------------------------------------
+// Class: {{ scoreboard_name }}
+// Description: Compares expected (from reference model) vs actual (from DUT monitor).
+//              Raises uvm_error on mismatch.
+//------------------------------------------------------------------------------
+
+`uvm_analysis_imp_decl(_expected)
+`uvm_analysis_imp_decl(_actual)
+
+
+class {{ scoreboard_name }} extends uvm_scoreboard;
+    `uvm_component_utils({{ scoreboard_name }})
+
+    // Two analysis exports – one for expected, one for actual
+    uvm_analysis_imp_expected #({{ trans_type }}, {{ scoreboard_name }}) expected_export;
+    uvm_analysis_imp_actual #({{ trans_type }}, {{ scoreboard_name }}) actual_export;
+
+    // Internal FIFOs (or simple queues)
+    local {{ trans_type }} expected_q[$];
+    local {{ trans_type }} actual_q[$];
+
+    // Constructor
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    // Build phase – create exports
+    function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+        expected_export = new("expected_export", this);
+        actual_export   = new("actual_export", this);
+    endfunction
+
+    // Write methods – called when transactions arrive on the respective export
+    function void write_expected({{ trans_type }} t);
+        expected_q.push_back(t);
+        check();
+    endfunction
+
+    function void write_actual({{ trans_type }} t);
+        actual_q.push_back(t);
+        check();
+    endfunction
+
+    // Local check method – called after each push
+    local function void check();
+        {{ trans_type }} exp;
+        {{ trans_type }} act;
+
+        if (expected_q.size() == 0 || actual_q.size() == 0) return;
+
+        exp = expected_q.pop_front();
+        act = actual_q.pop_front();
+
+        // Compare only output fields (you may also compare inputs if desired)
+        if (act.ex_alu != exp.ex_alu ||
+            act.alu_rdy != exp.alu_rdy ||
+            act.ex_alu_vld != exp.ex_alu_vld) begin
+            `uvm_error(get_type_name(), $sformatf(
+                "Mismatch:\n  Expected: ex_alu=%0d, alu_rdy=%0d, ex_alu_vld=%0d\n  Actual:   ex_alu=%0d, alu_rdy=%0d, ex_alu_vld=%0d",
+                exp.ex_alu, exp.alu_rdy, exp.ex_alu_vld,
+                act.ex_alu, act.alu_rdy, act.ex_alu_vld))
+        end else begin
+            `uvm_info(get_type_name(), "Match!", UVM_HIGH)
+        end
+    endfunction
+
+endclass

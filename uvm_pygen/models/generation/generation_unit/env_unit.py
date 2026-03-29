@@ -4,11 +4,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
+from uvm_pygen.constants.uvm_enum import ComponentType
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.generation.generation_unit.generation_unit import GenerationUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
 from uvm_pygen.models.logic_schema.env_model import EnvModel
-from uvm_pygen.services.utils import logger
+from uvm_pygen.services.utils.logger import logger
 
 
 @dataclass
@@ -28,14 +29,18 @@ class EnvUnit(GenerationUnit):
 
     def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
         env_name = f"{model.testbench_name}_env"
+
         return {
             "env_name": env_name,
             "testbench_name": model.testbench_name,
             "agents": model.agents,
             "agent_pkgs": [f"{a.name}_pkg" for a in model.agents],
-            "scoreboard": model.scoreboard,
             "trans_type": reg.get_context("trans_type", self.key),
             "if_name": reg.get_context("if_name", self.key),
+            "reference_model": reg.get_context("reference_model", self.key),
+            "scoreboard": reg.get_context("scoreboard", self.key),
+            "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
+            "ComponentType": ComponentType,  # for template use: {% if agent.has(ComponentType.DRIVER) %}
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:

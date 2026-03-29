@@ -50,3 +50,10 @@ class ActiveLevel(StrEnum):
 
     ACTIVE_HIGH = auto()
     ACTIVE_LOW = auto()
+
+
+class ReferenceModelStrategy(StrEnum):
+    """Defines the strategy for implementing a reference model in a UVM environment."""
+
+    AP_SUBSCRIBER = auto()
+    DPI_DRIVER = auto()

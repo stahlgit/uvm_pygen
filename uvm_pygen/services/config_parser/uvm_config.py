@@ -8,7 +8,7 @@ import yaml
 from pydantic import ValidationError
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
-from uvm_pygen.models.config_schema.uvm_dataclass import Component, Sequence, TransactionField
+from uvm_pygen.models.config_schema.uvm_dataclass import Component, ReferenceModelConfig, Sequence, TransactionField
 
 
 class UVMConfiguration:
@@ -97,6 +97,8 @@ class UVMConfiguration:
         # Environment
         env = self._raw_config.get("environment", {})
         self.env_name: str = env.get("name", "env")
+
+        self.strategy: ReferenceModelConfig = ReferenceModelConfig(**env.get("reference_model", {}))
 
         self.components: list[Component] = []
         for raw_comp in env.get("components", []):

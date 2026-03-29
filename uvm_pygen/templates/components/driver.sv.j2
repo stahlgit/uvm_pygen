@@ -19,6 +19,12 @@ class {{ agent.name }}_driver extends uvm_driver #({{ trans_type }});
     endfunction
 
     //--------------------------------------------------------------------------
+    // Analysis port
+    //--------------------------------------------------------------------------
+    uvm_analysis_port #({{ trans_type }}) ap;
+
+
+    //--------------------------------------------------------------------------
     // Build Phase – retrieve vif from resource_db
     //--------------------------------------------------------------------------
     function void build_phase(uvm_phase phase);
@@ -29,6 +35,8 @@ class {{ agent.name }}_driver extends uvm_driver #({{ trans_type }});
         if (vif_res == null)
             `uvm_fatal("NOVIF", {"Virtual interface not found in resource_db for: ", get_full_name()})
         vif = vif_res.read(this);
+
+        ap = new("ap", this);
     endfunction
 
     //--------------------------------------------------------------------------
@@ -47,6 +55,10 @@ class {{ agent.name }}_driver extends uvm_driver #({{ trans_type }});
     //--------------------------------------------------------------------------
     virtual task drive_item({{ trans_type }} item);
         vif.drive(item);
+        ap.write(item);
     endtask
+
+
+
 
 endclass : {{ agent.name }}_driver

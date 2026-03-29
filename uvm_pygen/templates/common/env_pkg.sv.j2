@@ -8,12 +8,15 @@ package {{ env_name }}_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
+    import {{ trans_pkg_name }}::*;
     // Import agent packages
     {% for pkg in agent_pkgs %}
     import {{ pkg }}::*;
     {% endfor %}
 
     // Environment class
+    `include "{{ reference_model }}.sv"
+    `include "{{ scoreboard }}.sv"
     `include "{{ env_name }}.sv"
 
 endpackage : {{ env_name }}_pkg

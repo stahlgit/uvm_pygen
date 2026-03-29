@@ -5,6 +5,8 @@ from .env_unit import EnvUnit
 from .generation_unit import GenerationUnit
 from .interface_unit import InterfaceUnit
 from .param_pkg_unit import ParamsPkgUnit
+from .reference_model_unit import ReferenceModelUnit
+from .scoreboard_unit import ScoreboardUnit
 from .sequence_unit import SequencesUnit
 from .sim_unit import SimUnit
 from .test_unit import TestsUnit
@@ -22,4 +24,6 @@ __all__ = [
     "TestsUnit",
     "TopUnit",
     "TransactionUnit",
+    "ScoreboardUnit",
+    "ReferenceModelUnit",
 ]

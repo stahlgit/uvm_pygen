@@ -4,20 +4,30 @@
 
 ```mermaid
 flowchart TD
-    classDef logic   fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef data    fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef logic    fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef data     fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
     classDef artifact fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef registry fill:#fce4ec,stroke:#c62828,stroke-width:2px;
-    classDef unit    fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
+    classDef unit     fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
+    classDef meta     fill:#ede7f6,stroke:#4527a0,stroke-width:2px;
 
-    subgraph Inputs [Inputs]
+    subgraph Inputs [Inputs — flexible config]
         direction TB
-        DUT_CFG[config_dut.yaml]
-        UVM_CFG[config_uvm.yaml]
+        SPLIT["Split files\nconfig_dut.yaml + config_uvm.yaml"]
+        UNIFIED["Unified file\nconfig.yaml"]
+        AUTO["Auto-discovery\n*.yaml in CWD"]
+    end
+
+    subgraph Phase0 [Config Resolution]
+        Resolver[ConfigResolver]:::logic
+        Layout[ConfigLayout\nderived from dataclass metadata]:::meta
+        RC(ResolvedConfigs\ndut · uvm · unified):::data
+        Layout -. derives key sets .-> Resolver
+        Resolver --> RC
     end
 
     subgraph Phase1 [Configuration Loading]
-        Loader[Config Loader]:::logic
+        Loader[ConfigLoader]:::logic
         DUT_OBJ(DUTConfiguration):::data
         UVM_OBJ(UVMConfiguration):::data
     end
@@ -65,7 +75,8 @@ flowchart TD
         SV_FILES[SystemVerilog Files .sv]:::artifact
     end
 
-    DUT_CFG & UVM_CFG --> Loader
+    SPLIT & UNIFIED & AUTO --> Resolver
+    RC --> Loader
     Loader --> DUT_OBJ & UVM_OBJ
     DUT_OBJ & UVM_OBJ --> Builder
     Builder --> EnvModel

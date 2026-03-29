@@ -1,0 +1,55 @@
+//------------------------------------------------------------------------------
+// Class: {{ refmodel_name }}
+// Description: Reference model as a uvm_subscriber.
+//              Receives input transaction, computes expected output,
+//              and broadcasts the predicted result.
+//------------------------------------------------------------------------------
+
+class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
+    `uvm_component_utils({{ refmodel_name }})
+
+    // Analysis port for expected output (connected to scoreboard)
+    uvm_analysis_port #({{ trans_type }}) ap_expected;
+
+    // Constructor
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    // Build phase – create analysis port
+    function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+        ap_expected = new("ap_expected", this);
+    endfunction
+
+    // Write method – called when a transaction arrives on the export
+    function void write({{ trans_type }} t);
+        {{ trans_type }} expected;
+        expected = {{ trans_type }}::type_id::create("expected");
+        predict(t, expected);
+        ap_expected.write(expected);
+    endfunction
+
+    // -----------------------------------------------------------------------
+    // Placeholder prediction logic – override in your extended class
+    // or edit this method directly.
+    // -----------------------------------------------------------------------
+    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp);
+        // `uvm_info(get_type_name(), "PREDICT called – implement me!", UVM_MEDIUM)
+        // Copy stimulus fields (optional – scoreboard may only compare outputs)
+        outp.act = inp.act;
+        outp.op  = inp.op;
+        outp.movi = inp.movi;
+        outp.reg_a = inp.reg_a;
+        outp.reg_b = inp.reg_b;
+        outp.mem = inp.mem;
+        outp.imm = inp.imm;
+
+        // *** PREDICTION LOGIC GOES HERE ***
+        // Example: for an ALU, compute outp.ex_alu based on op, operands, etc.
+        // outp.ex_alu = ...;
+        // outp.alu_rdy = 1;
+        // outp.ex_alu_vld = 1;
+    endfunction
+
+endclass

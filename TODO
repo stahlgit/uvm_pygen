@@ -1,0 +1,35 @@
+1. MOVE transaction into sequences_lib folder
+2. reference model - (optionally fill with enum)
+2.1 add config what architecture it would be:
+    - a Seq -> DR -> RM -> Scoceboard
+                  -> DUT -> MON ->
+    - seq -> DR -> RD -> MON -> scoreboard
+      seq -> DR ä-> DUT -> MON -> 
+2.2 LEAVE it all , so simulation runs
+
+3. scoreboard
+3.1 buffer for comparison 
+3.2 analytic fifo (analytic port)
+3.3 define in config:
+    - aexp only (analytic export )
+    - aexp fifo 
+3.4 !!! in env analytic port connection to fifo + analytic export
+
+
+
+
+BP výstup:
+
+Introduction - prečo taký generátor potrebujeme - motivácia, bla bla bla (60-70% času je len verifikácia)
+Teoria - UVM 
+    - čo je to, prečo, jednotlivé koncepty
+SoA - aké generátory už existujú
+Riešenie - čo môj generátor robí, zvláda, ... 
+    - koncept generátora
+Potenciálne rozšírenia -čo dá čas
+Experimenty - 
+    - testovanie generátora na inom dizajne
+    - ALU
+    - FIFO + Timer 
+Záver
+    - Potenciálne rozšírenia, vyhodnotenie 

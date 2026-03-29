@@ -76,12 +76,18 @@ ports:
 # ============================================================================
 verification:
   project_name: "ALU Functional Verification"
-  testbench_name: "NEXT_TESTBENCH"
-  uvm_version: "1.2"
+  testbench_name: "reference_testbench"
+  uvm_version: "1.2" ##TODO: remove since i am testing on 1.1 
 
 environment:
   name: alu_env
   type: uvm_env
+  reference_model: 
+    strategy: ap_subscriber
+    #TODO:
+    # strategy: dpi_driver
+    # dpi_function: "alu_ref_model"   # C function name (strategy 2 only)
+    # dpi_header: "alu_ref.h"
   components:
     - name: alu_agent
       type: uvm_agent
@@ -92,15 +98,6 @@ environment:
         sequencer: { enabled: true, type: uvm_sequencer }
         monitor:   { enabled: true, type: uvm_monitor }
         coverage:  { enabled: true, type: uvm_subscriber }
-
-    - name: output_agent
-      type: uvm_agent
-      mode: passive
-      interface: alu_if
-      direction: output
-      subcomponents:
-        monitor:  { enabled: true, type: uvm_monitor }
-        coverage: { enabled: true, type: uvm_subscriber }
 
 transactions:
   name: AluTransaction

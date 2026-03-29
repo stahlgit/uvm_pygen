@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
+from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction, ReferenceModelStrategy
 
 
 class Component(BaseModel):
@@ -119,6 +119,20 @@ class Test(BaseModel):
     build_phase: str = "default"
     run_phase: str = "default"
     coverage_goal: int | None = None
+
+
+class ReferenceModelConfig(BaseModel):
+    """Reference model configuration.
+
+    Top-level YAML key: ``environment`` → ``reference_model``
+    The owning key is ``environment`` (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "environment", "required": True},
+    )
+
+    strategy: ReferenceModelStrategy | None = None
 
 
 class VerificationInfo(BaseModel):

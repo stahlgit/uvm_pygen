@@ -17,7 +17,7 @@ class EnvUnit(GenerationUnit):
     """Generation unit for the environment."""
 
     key: str = "env"
-    deps: list[str] = field(default_factory=lambda: ["agents", "sequences"])
+    deps: list[str] = field(default_factory=lambda: ["agents", "sequences"]) #TODO: add deps for reference model, trans pkg, scoreboard
 
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(template="common/env.sv.j2", suffix="_env.sv", subdir="env"),

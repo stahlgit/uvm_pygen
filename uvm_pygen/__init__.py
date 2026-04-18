@@ -8,11 +8,35 @@ from uvm_pygen.services.generation.generator import Generator
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
 from uvm_pygen.services.utils.logger import logger, set_debug_mode
 from uvm_pygen.services.utils.parser import parse_args
+from uvm_pygen.services.utils.settings_manager import settings
+
+
+def _handle_early_exit(args) -> None:
+    """Handle command-line arguments that require early exit (like showing or resetting aliases) before proceeding with the main generation logic."""
+    if args.show_aliases:
+        settings.show_aliases()
+        sys.exit(0)
+
+    if args.reset_aliases:
+        settings.reset_aliases()
+        sys.exit(0)
+
+    if args.add_alias:
+        for entry in args.add_alias:
+            try:
+                group, alias = entry.split(":")
+                settings.add_alias(group.strip(), alias.strip())
+                logger.info(f"Successfully added alias '{alias.strip()}' to group '{group.strip()}'")
+            except ValueError:
+                logger.error(f"Invalid alias format '{entry}'. Expected format is GROUP:ALIAS.")
+                sys.exit(1)
+        sys.exit(0)
 
 
 def run():
     """Main function to orchestrate the UVM environment generation process."""
     args = parse_args()
+    _handle_early_exit(args)
 
     if args.debug:
         set_debug_mode(True)

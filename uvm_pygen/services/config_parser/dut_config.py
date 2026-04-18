@@ -16,6 +16,7 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
     Parameter,
     Port,
 )
+from uvm_pygen.services.utils.settings_manager import settings
 
 
 class DUTConfiguration:
@@ -26,11 +27,6 @@ class DUTConfiguration:
     this class handles cross-object consistency checks that require the full
     parsed state (enum resolution, group presence, etc.).
     """
-
-    # --- Group alias sets ---------------------------------------------------
-    __CONTROL_ALIASES = {"control", "ctrl", "config", "cfg", "mode", "select", "cmd"}
-    __DATA_IN_ALIASES = {"input", "data_input", "data_in", "din", "operand", "args"}
-    __DATA_OUT_ALIASES = {"output", "data_output", "data_out", "dout", "result", "res"}
 
     def __init__(self, config_path: str | Path) -> None:
         """Initialize DUT configuration from YAML file.
@@ -45,6 +41,10 @@ class DUTConfiguration:
         self.detected_control_aliases: set[str] = set()
         self.detected_data_in_aliases: set[str] = set()
         self.detected_data_out_aliases: set[str] = set()
+
+        self.control_aliases = settings.aliases.get("control", set())
+        self.data_in_aliases = settings.aliases.get("data_in", set())
+        self.data_out_aliases = settings.aliases.get("data_out", set())
 
         self._load()
         self._parse()
@@ -67,9 +67,15 @@ class DUTConfiguration:
         instance = cls.__new__(cls)
         instance.config_path = Path(source_label)
         instance._raw_config = raw
+
         instance.detected_control_aliases = set()
         instance.detected_data_in_aliases = set()
         instance.detected_data_out_aliases = set()
+
+        instance.control_aliases = settings.aliases.get("control", set())
+        instance.data_in_aliases = settings.aliases.get("data_in", set())
+        instance.data_out_aliases = settings.aliases.get("data_out", set())
+
         instance._parse()
         return instance
 
@@ -124,7 +130,7 @@ class DUTConfiguration:
         Returns:
             list[Port]: List of ports in control group.
         """
-        return [p for p in self.ports if p.group and p.group.lower() in self.__CONTROL_ALIASES]
+        return [p for p in self.ports if p.group and p.group.lower() in self.control_aliases]
 
     def get_data_input_ports(self) -> list[Port]:
         """Get all data input ports.
@@ -132,7 +138,7 @@ class DUTConfiguration:
         Returns:
             list[Port]: List of ports in data input group.
         """
-        return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_IN_ALIASES]
+        return [p for p in self.ports if p.group and p.group.lower() in self.data_in_aliases]
 
     def get_data_output_ports(self) -> list[Port]:
         """Get all data output ports.
@@ -140,7 +146,7 @@ class DUTConfiguration:
         Returns:
             list[Port]: List of ports in data output group.
         """
-        return [p for p in self.ports if p.group and p.group.lower() in self.__DATA_OUT_ALIASES]
+        return [p for p in self.ports if p.group and p.group.lower() in self.data_out_aliases]
 
     def get_ports_by_group(self, group: str) -> list[Port]:
         """Get ports by group name.
@@ -290,11 +296,11 @@ class DUTConfiguration:
             if not port.group:
                 continue
             group_lower = port.group.lower()
-            if group_lower in self.__CONTROL_ALIASES:
+            if group_lower in self.control_aliases:
                 self.detected_control_aliases.add(port.group)
-            elif group_lower in self.__DATA_IN_ALIASES:
+            elif group_lower in self.data_in_aliases:
                 self.detected_data_in_aliases.add(port.group)
-            elif group_lower in self.__DATA_OUT_ALIASES:
+            elif group_lower in self.data_out_aliases:
                 self.detected_data_out_aliases.add(port.group)
 
         missing: list[str] = []

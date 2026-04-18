@@ -40,6 +40,29 @@ def parse_args():
         ),
     )
 
+    ### SETTINGS MANAGEMENT FLAGS ###
+    parser.add_argument(
+        "--add-alias",
+        metavar="GROUP:ALIAS",
+        action="append",
+        help=(
+            "Add a custom port group alias to the .uvm_pygen cache. "
+            "Format: <group>:<alias> (e.g., --add-alias control:my_cfg)"
+        ),
+    )
+
+    parser.add_argument(
+        "--show-aliases",
+        action="store_true",
+        help="Display the currently configured port group aliases and exit.",
+    )
+
+    parser.add_argument(
+        "--reset-aliases",
+        action="store_true",
+        help="Reset all port group aliases to their factory defaults and exit.",
+    )
+
     args = parser.parse_args()
 
     # Enforce mutual exclusivity of --config with --dut-config and --uvm-config

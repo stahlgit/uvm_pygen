@@ -34,7 +34,7 @@ class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
     // Placeholder prediction logic – override in your extended class
     // or edit this method directly.
     // -----------------------------------------------------------------------
-    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp);
+    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp); //TODO: remove output
         // `uvm_info(get_type_name(), "PREDICT called – implement me!", UVM_MEDIUM)
         // Copy stimulus fields (optional – scoreboard may only compare outputs)
         outp.act = inp.act;

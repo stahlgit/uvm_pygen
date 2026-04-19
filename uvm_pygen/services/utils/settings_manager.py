@@ -12,7 +12,7 @@ class SettingsManager:
     DEFAULT_ALIASES = {
         "control": ["control", "ctrl", "config", "cfg", "mode", "select", "cmd"],
         "data_in": ["input", "data_input", "data_in", "din", "operand", "args"],
-        "data_out": ["output", "data_output", "data_out", "dout", "result", "res"],
+        "data_out": ["output", "data_output", "data_out", "dout", "result", "res", "status"],
     }
 
     def __init__(self, cache_dir: str = ".uvm_pygen"):

@@ -31,6 +31,7 @@ class ScoreboardUnit(GenerationUnit):
         return {
             "scoreboard_name": f"{model.dut_instance_name}_scoreboard",
             "trans_type": reg.get_context("trans_type", self.key),
+            "trans": model.transaction,
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict) -> None:

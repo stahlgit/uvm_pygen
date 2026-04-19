@@ -1,0 +1,106 @@
+# ============================================================================
+# Unified Configuration — FIFO DUT + UVM
+# ============================================================================
+
+# ============================================================================
+# DUT — Hardware Description
+# ============================================================================
+dut:
+  name: fifo
+  entity_name: fifo
+  description: "16-bit FIFO with Hamming(22,16) coded output and status flags"
+  data_width: 16
+  output_width: 22        # CODE_OUT is 22-bit
+  clock_period: 10        # ns
+  reset_type: active_high # RST = '1' triggers reset (async)
+  language: vhdl
+
+parameters:
+  - name: DEPTH
+    value: 16
+    description: "Depth of the FIFO (number of 16-bit entries)"
+
+ports:
+  - { name: CLK,            direction: input,  type: std_logic, width: 1,   is_clock: true,  description: "Clock signal" }
+  - { name: RST,            direction: input,  type: std_logic, width: 1,   is_reset: true,  active_level: high, description: "Asynchronous reset (active high)" }
+  - { name: ENR,            direction: input,  type: std_logic, width: 1,   group: control,  description: "Read enable - must be '0' when not reading" } # TODO: "—" had weird formatting - possible bug
+  - { name: ENW,            direction: input,  type: std_logic, width: 1,   group: control,  description: "Write enable - must be '0' when not writing" }
+  - { name: DATA_IN,        direction: input,  type: std_logic_vector, width: 16, group: data_input, description: "Write data" }
+  - { name: DATA_OUT,       direction: output, type: std_logic_vector, width: 16, group: data_output, description: "Read data (registered, one cycle after ENR)" }
+  - { name: CODE_OUT,       direction: output, type: std_logic_vector, width: 22, group: data_output, description: "Hamming(22,16) encoded read data (registered)" }
+  - { name: FIFO_EMPTY,     direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when FIFO contains no entries" }
+  - { name: FIFO_FULL,      direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when FIFO is completely full" }
+  - { name: FIFO_THRESHOLD, direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when read pointer equals write pointer (half-full marker)" }
+  - { name: FIFO_OVERFLOW,  direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when a write is attempted while FIFO is full" }
+  - { name: FIFO_UNDERFLOW, direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when a read is attempted while FIFO is empty" }
+
+# ============================================================================
+# UVM — Verification Environment
+# ============================================================================
+verification:
+  project_name: "FIFO Functional Verification"
+  testbench_name: "fifo_testbench"
+  uvm_version: "1.2"
+
+environment:
+  name: fifo_env
+  type: uvm_env
+  reference_model:
+    strategy: ap_subscriber
+  components:
+    - name: fifo_agent
+      type: uvm_agent
+      mode: active
+      interface: fifo_if
+      subcomponents:
+        driver:    { enabled: true, type: uvm_driver }
+        sequencer: { enabled: true, type: uvm_sequencer }
+        monitor:   { enabled: true, type: uvm_monitor }
+        coverage:  { enabled: true, type: uvm_subscriber }
+
+transactions:
+  name: FifoTransaction
+  base_class: uvm_sequence_item
+  field_overrides:
+    - { name: rst,      randomize: false, default: 0 }
+    - { name: enr,      randomize: true }
+    - { name: enw,      randomize: true }
+    - { name: data_in,  randomize: true }
+
+simulation:
+  compilation:
+    options:
+      - "+incdir+./agents"
+      - "-timescale 1ps/1ps"
+      - "-sv"
+      - "+define+UVM_NO_DEPRECATED"
+  elaboration:
+    options:
+      - "-uvmcontrol=all"
+  simulation_options:
+    default_test: random_test
+    verbosity: UVM_MEDIUM
+    coverage: true
+  waveform:
+    enabled: true
+    format: wlf
+    save_signals: ["/*"]
+
+randomization:
+  seed: 12345
+
+# ============================================================================
+# Predictor notes (for reference model implementation)
+# ============================================================================
+# Key behaviours to model:
+#   - Write: if !full → push DATA_IN, increment write pointer (wraps at DEPTH-1)
+#             if full  → set OVERFLOW
+#   - Read:  if !empty → output memory[readptr], increment read pointer (wraps at DEPTH-1)
+#             if empty  → set UNDERFLOW
+#   - EMPTY:     num_elem == 0
+#   - FULL:      num_elem == DEPTH
+#   - THRESHOLD: readptr == writeptr  (NOTE: also true when empty)
+#   - DATA_OUT and CODE_OUT are registered — appear one cycle after ENR
+#   - Simultaneous ENR+ENW is allowed (read then write within same cycle)
+#   - Hamming(22,16): data bits mapped to codeword positions, then p1/p2/p4/p8/p16 computed,
+#     overall parity bit added at position 22.

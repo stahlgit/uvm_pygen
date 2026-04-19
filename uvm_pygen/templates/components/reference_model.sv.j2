@@ -34,22 +34,17 @@ class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
     // Placeholder prediction logic – override in your extended class
     // or edit this method directly.
     // -----------------------------------------------------------------------
-    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp); //TODO: remove output
-        // `uvm_info(get_type_name(), "PREDICT called – implement me!", UVM_MEDIUM)
-        // Copy stimulus fields (optional – scoreboard may only compare outputs)
-        outp.act = inp.act;
-        outp.op  = inp.op;
-        outp.movi = inp.movi;
-        outp.reg_a = inp.reg_a;
-        outp.reg_b = inp.reg_b;
-        outp.mem = inp.mem;
-        outp.imm = inp.imm;
+    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp);
+        // Copy input fields
+        {% for var in trans.variables if var.direction.value == 'input' %}
+        outp.{{ var.name }} = inp.{{ var.name }};
+        {% endfor %}
 
         // *** PREDICTION LOGIC GOES HERE ***
-        // Example: for an ALU, compute outp.ex_alu based on op, operands, etc.
-        // outp.ex_alu = ...;
-        // outp.alu_rdy = 1;
-        // outp.ex_alu_vld = 1;
+        // Output fields to populate:
+        {% for var in trans.variables if var.direction.value == 'output' %}
+        // outp.{{ var.name }} = ...;
+        {% endfor %}
     endfunction
 
 endclass

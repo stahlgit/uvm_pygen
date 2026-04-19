@@ -99,30 +99,31 @@ class {{ trans.class_name }} extends uvm_sequence_item;
 
 
     // Convert to String
-    function string convert2string();
-        string s;
-        s = $sformatf("\n-------------------------------------------------\n");
-        s = {s, $sformatf("Transaction: %s\n", get_name())};
-        
-        // Logic/Integer signals use 'h%0h (Hex) or 'd%0d (Decimal)
-        s = {s, $sformatf("  act: \t'h%0h\n", act)}; 
-        
-        // Enums use %s and the .name() method
-        s = {s, $sformatf("  op: \t%s\n", op.name())};
-        s = {s, $sformatf("  movi: \t%s\n", movi.name())};
-        
-        // Data vectors usually look best in Hex
-        s = {s, $sformatf("  reg_a: \t'h%0h\n", reg_a)};
-        s = {s, $sformatf("  reg_b: \t'h%0h\n", reg_b)};
-        s = {s, $sformatf("  mem: \t'h%0h\n", mem)};
-        s = {s, $sformatf("  imm: \t'h%0h\n", imm)};
-        
-        // Control signals
-        s = {s, $sformatf("  ex_alu_vld: \t'h%0h\n", ex_alu_vld)};
-        s = {s, $sformatf("  ex_alu: \t'h%0h\n", ex_alu)};
-        
-        s = {s, "-------------------------------------------------\n"};
-        return s;
-    endfunction : convert2string
+    //TODO: redo this to be generic
+    // function string convert2string();
+    //     string s;
+    //     s = $sformatf("\n-------------------------------------------------\n");
+    //     s = {s, $sformatf("Transaction: %s\n", get_name())};
+    //     
+    //     // Logic/Integer signals use 'h%0h (Hex) or 'd%0d (Decimal)
+    //     s = {s, $sformatf("  act: \t'h%0h\n", act)}; 
+    //     
+    //     // Enums use %s and the .name() method
+    //     s = {s, $sformatf("  op: \t%s\n", op.name())};
+    //     s = {s, $sformatf("  movi: \t%s\n", movi.name())};
+    //     
+    //     // Data vectors usually look best in Hex
+    //     s = {s, $sformatf("  reg_a: \t'h%0h\n", reg_a)};
+    //     s = {s, $sformatf("  reg_b: \t'h%0h\n", reg_b)};
+    //     s = {s, $sformatf("  mem: \t'h%0h\n", mem)};
+    //     s = {s, $sformatf("  imm: \t'h%0h\n", imm)};
+    //     
+    //     // Control signals
+    //     s = {s, $sformatf("  ex_alu_vld: \t'h%0h\n", ex_alu_vld)};
+    //     s = {s, $sformatf("  ex_alu: \t'h%0h\n", ex_alu)};
+    //     
+    //     s = {s, "-------------------------------------------------\n"};
+    //     return s;
+    // endfunction : convert2string
 
 endclass : {{ trans.class_name }}

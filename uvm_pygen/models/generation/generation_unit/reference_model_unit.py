@@ -27,6 +27,7 @@ class ReferenceModelUnit(GenerationUnit):
         return {
             "refmodel_name": f"{model.dut_instance_name}_reference_model",
             "trans_type": reg.get_context("trans_type", self.key),
+            "trans": model.transaction,
         }
 
     def _post_run(self, registry, model, written):

@@ -26,3 +26,4 @@ vsim.wlf
 wave.tcl
 start.tcl
 *.ini
+wlft*

@@ -52,14 +52,13 @@ class {{ scoreboard_name }} extends uvm_scoreboard;
         exp = expected_q.pop_front();
         act = actual_q.pop_front();
 
-        // Compare only output fields (you may also compare inputs if desired)
-        if (act.ex_alu != exp.ex_alu ||
-            act.alu_rdy != exp.alu_rdy ||
-            act.ex_alu_vld != exp.ex_alu_vld) begin
-            `uvm_error(get_type_name(), $sformatf(
-                "Mismatch:\n  Expected: ex_alu=%0d, alu_rdy=%0d, ex_alu_vld=%0d\n  Actual:   ex_alu=%0d, alu_rdy=%0d, ex_alu_vld=%0d",
-                exp.ex_alu, exp.alu_rdy, exp.ex_alu_vld,
-                act.ex_alu, act.alu_rdy, act.ex_alu_vld))
+        // Compare only output fields
+        if ({% set out_vars = trans.variables | selectattr("direction.value", "equalto", "output") | list %}
+            {% for var in out_vars %}
+            act.{{ var.name }} != exp.{{ var.name }}{% if not loop.last %} ||{% endif %}
+
+            {% endfor %}) begin
+            `uvm_error(get_type_name(), $sformatf("Mismatch:\n  act=%p\n  exp=%p", act, exp))
         end else begin
             `uvm_info(get_type_name(), "Match!", UVM_HIGH)
         end

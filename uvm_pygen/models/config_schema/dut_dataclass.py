@@ -101,6 +101,17 @@ class EnumType(BaseModel):
         return [val.name for val in self.values]
 
 
+# Mapping of VHDL types to their SystemVerilog equivalents, used in Port normalization.
+_VHDL_TO_SV_TYPE: dict[str, str] = {
+    "std_logic": "logic",
+    "std_logic_vector": "logic",
+    "std_ulogic": "logic",
+    "std_ulogic_vector": "logic",
+    "unsigned": "logic",
+    "signed": "logic",
+}
+
+
 class Port(BaseModel):
     """DUT port definition.
 
@@ -138,6 +149,25 @@ class Port(BaseModel):
         if isinstance(v, str) and v.strip().isdigit():
             return int(v.strip())
         # Bus expression strings are kept as-is; resolved later by DUTConfiguration
+        return v
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def normalize_port_type(cls, v: Any) -> str:
+        """Normalize VHDL types to their SystemVerilog equivalents.
+
+        Allows YAML configs written for VHDL DUTs to use native VHDL type names
+        (e.g. ``std_logic``, ``std_logic_vector``) which are transparently mapped
+        to ``logic`` for SV interface/testbench generation.
+
+        Examples:
+            ``std_logic``        → ``logic``
+            ``std_logic_vector`` → ``logic``
+            ``logic``            → ``logic``  (no-op)
+        """
+        if isinstance(v, str):
+            normalized = v.strip().lower()
+            return _VHDL_TO_SV_TYPE.get(normalized, v.strip())
         return v
 
     @field_validator("active_level", mode="before")

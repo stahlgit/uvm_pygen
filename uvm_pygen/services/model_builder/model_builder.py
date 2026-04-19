@@ -51,12 +51,9 @@ class ModelBuilder:
         transaction_model = self._build_transaction_model()
 
         ### INTERFACE
-        control_ports = self.loader.dut.get_control_ports()
-        data_in_ports = self.loader.dut.get_data_input_ports()
-        data_out_ports = self.loader.dut.get_data_output_ports()
         clk_ports = self.loader.dut.get_clock_ports()
         rst_ports = self.loader.dut.get_reset_ports()
-        interface_ports = control_ports + data_in_ports + data_out_ports
+        interface_ports = self.loader.dut.get_signal_ports()
 
         resolved_interface_ports = []
         for port in interface_ports:
@@ -64,7 +61,7 @@ class ModelBuilder:
                 port.model_copy(update={"width": self._get_range_from_port(port)})
             )  # Convert to SV range string
 
-        # TODO: create interfaces based on how many are defined in UVM config, right now we will create only one interface
+        s# TODO: create interfaces baed on how many are defined in UVM config, right now we will create only one interface
         main_interface = InterfaceModel(
             name=self.loader.uvm.interface_list[0],
             ports=resolved_interface_ports,
@@ -111,11 +108,7 @@ class ModelBuilder:
         """Vytvorí model transakcie spojením DUT portov a UVM nastavení."""
         variables = []
 
-        target_ports = (
-            self.loader.dut.get_control_ports()
-            + self.loader.dut.get_data_input_ports()
-            + self.loader.dut.get_data_output_ports()
-        )
+        target_ports = self.loader.dut.get_signal_ports()
 
         for port in target_ports:
             # A. Rozhodni o Type (Logic vector vs Enum)

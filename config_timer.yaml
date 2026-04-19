@@ -67,12 +67,12 @@ register_map:
 ports:
   - { name: CLK,      direction: input,  type: std_logic,        width: 1,  is_clock: true,  description: "Clock signal" }
   - { name: RST,      direction: input,  type: std_logic,        width: 1,  is_reset: true,  active_level: low, description: "Asynchronous reset (active low)" }
-  - { name: REQUEST,  direction: input,  type: std_logic_vector, width: 2,  group: bus,      enum_name: request_t,  description: "Bus request type" }
-  - { name: ADDRESS,  direction: input,  type: std_logic_vector, width: "ADDR_WIDTH", group: bus, description: "Register address" }
-  - { name: DATA_IN,  direction: input,  type: std_logic_vector, width: "DATA_WIDTH", group: bus, description: "Write data" }
-  - { name: RESPONSE, direction: output, type: std_logic_vector, width: 3,  group: bus,      enum_name: response_t, description: "Bus response (combinational from current + registered request)" }
-  - { name: DATA_OUT, direction: output, type: std_logic_vector, width: "DATA_WIDTH", group: bus, description: "Read data (valid when RESPONSE = RSP_ACK and request was READ)" }
-  - { name: P_IRQ,    direction: output, type: std_logic,        width: 1,  group: status,   description: "Interrupt: high when timer enabled and cnt == cmp" }
+  - { name: REQUEST,  direction: input,  type: std_logic_vector, width: 2,  enum_name: request_t,  description: "Bus request type" }
+  - { name: ADDRESS,  direction: input,  type: std_logic_vector, width: "ADDR_WIDTH", description: "Register address" }
+  - { name: DATA_IN,  direction: input,  type: std_logic_vector, width: "DATA_WIDTH", description: "Write data" }
+  - { name: RESPONSE, direction: output, type: std_logic_vector, width: 3,  enum_name: response_t, description: "Bus response (combinational from current + registered request)" }
+  - { name: DATA_OUT, direction: output, type: std_logic_vector, width: "DATA_WIDTH", description: "Read data (valid when RESPONSE = RSP_ACK and request was READ)" }
+  - { name: P_IRQ,    direction: output, type: std_logic,        width: 1,  description: "Interrupt: high when timer enabled and cnt == cmp" }
 
 # ============================================================================
 # UVM — Verification Environment

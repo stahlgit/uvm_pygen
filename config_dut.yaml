@@ -87,7 +87,6 @@ ports:
     type: logic
     width: 1
     description: "Activate signal for operation"
-    group: control # maybe useful for coverage generation
 
   # OP(3:0) [in]
   - name: OP
@@ -95,7 +94,7 @@ ports:
     type: logic
     width: (3:0) # also could be "4"
     description: "Operation selector (16 operations)"
-    group: control
+
     enum_name: operation_t # could be enum_type or enum
 
   # MOVI (1:0) [in]
@@ -104,7 +103,7 @@ ports:
     type: logic
     width: (1:0)
     description: "operand B selector"
-    group: control
+
     enum_name: movi_t # could be enum_type or enum
 
   # DATA INPUTS
@@ -114,7 +113,7 @@ ports:
     type: logic
     width: DATA_WIDTH # reference parameter
     description: "Register A operand"
-    group: data_input
+
 
   # REG_ B (DATA WIDTH-1:0) [in]
   - name: REG_B
@@ -122,21 +121,21 @@ ports:
     type: logic
     width: DATA_WIDTH # reference parameter
     description: "Register B operand"
-    group: data_input
+
 
   - name: MEM
     direction: input
     type: logic
     width: DATA_WIDTH # reference parameter
     description: "Memory operand"
-    group: data_input
+
 
   - name: IMM
     direction: input
     type: logic
     width: DATA_WIDTH # reference parameter
     description: "Immediate operand"
-    group: data_input
+
 
   # Outputs
   - name: EX_ALU_VLD
@@ -144,21 +143,21 @@ ports:
     type: logic
     width: 1
     description: "Output valid signal"
-    group: output
+
 
   - name: EX_ALU
     direction: output
     type: logic
     width: DATA_WIDTH 
     description: "ALU result (16-bit for multiplication)"
-    group: output
+
   
   - name: ALU_RDY
     direction: output
     type: logic
     width: 1
     description: "ALU ready signal for handshaking"
-    group: output
+
 
 
 # ============================================================================

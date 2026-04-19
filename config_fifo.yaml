@@ -23,16 +23,16 @@ parameters:
 ports:
   - { name: CLK,            direction: input,  type: std_logic, width: 1,   is_clock: true,  description: "Clock signal" }
   - { name: RST,            direction: input,  type: std_logic, width: 1,   is_reset: true,  active_level: high, description: "Asynchronous reset (active high)" }
-  - { name: ENR,            direction: input,  type: std_logic, width: 1,   group: control,  description: "Read enable - must be '0' when not reading" } # TODO: "—" had weird formatting - possible bug
-  - { name: ENW,            direction: input,  type: std_logic, width: 1,   group: control,  description: "Write enable - must be '0' when not writing" }
-  - { name: DATA_IN,        direction: input,  type: std_logic_vector, width: 16, group: data_input, description: "Write data" }
-  - { name: DATA_OUT,       direction: output, type: std_logic_vector, width: 16, group: data_output, description: "Read data (registered, one cycle after ENR)" }
-  - { name: CODE_OUT,       direction: output, type: std_logic_vector, width: 22, group: data_output, description: "Hamming(22,16) encoded read data (registered)" }
-  - { name: FIFO_EMPTY,     direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when FIFO contains no entries" }
-  - { name: FIFO_FULL,      direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when FIFO is completely full" }
-  - { name: FIFO_THRESHOLD, direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when read pointer equals write pointer (half-full marker)" }
-  - { name: FIFO_OVERFLOW,  direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when a write is attempted while FIFO is full" }
-  - { name: FIFO_UNDERFLOW, direction: output, type: std_logic, width: 1,   group: data_output,   description: "High when a read is attempted while FIFO is empty" }
+  - { name: ENR,            direction: input,  type: std_logic, width: 1,   description: "Read enable - must be '0' when not reading" }
+  - { name: ENW,            direction: input,  type: std_logic, width: 1,   description: "Write enable - must be '0' when not writing" }
+  - { name: DATA_IN,        direction: input,  type: std_logic_vector, width: 16, description: "Write data" }
+  - { name: DATA_OUT,       direction: output, type: std_logic_vector, width: 16, description: "Read data (registered, one cycle after ENR)" }
+  - { name: CODE_OUT,       direction: output, type: std_logic_vector, width: 22, description: "Hamming(22,16) encoded read data (registered)" }
+  - { name: FIFO_EMPTY,     direction: output, type: std_logic, width: 1,   description: "High when FIFO contains no entries" }
+  - { name: FIFO_FULL,      direction: output, type: std_logic, width: 1,   description: "High when FIFO is completely full" }
+  - { name: FIFO_THRESHOLD, direction: output, type: std_logic, width: 1,   description: "High when read pointer equals write pointer (half-full marker)" }
+  - { name: FIFO_OVERFLOW,  direction: output, type: std_logic, width: 1,   description: "High when a write is attempted while FIFO is full" }
+  - { name: FIFO_UNDERFLOW, direction: output, type: std_logic, width: 1,   description: "High when a read is attempted while FIFO is empty" }
 
 # ============================================================================
 # UVM — Verification Environment

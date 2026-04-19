@@ -16,7 +16,6 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
     Parameter,
     Port,
 )
-from uvm_pygen.services.utils.settings_manager import settings
 
 
 class DUTConfiguration:
@@ -25,7 +24,7 @@ class DUTConfiguration:
     Responsible for loading, parsing, and validating the DUT YAML config.
     Pydantic models handle per-field type coercion and validation on construction;
     this class handles cross-object consistency checks that require the full
-    parsed state (enum resolution, group presence, etc.).
+    parsed state (enum resolution, etc.).
     """
 
     def __init__(self, config_path: str | Path) -> None:
@@ -36,15 +35,6 @@ class DUTConfiguration:
         """
         self.config_path = Path(config_path)
         self._raw_config: dict = {}
-
-        # Detected aliases — populated during validate()
-        self.detected_control_aliases: set[str] = set()
-        self.detected_data_in_aliases: set[str] = set()
-        self.detected_data_out_aliases: set[str] = set()
-
-        self.control_aliases = settings.aliases.get("control", set())
-        self.data_in_aliases = settings.aliases.get("data_in", set())
-        self.data_out_aliases = settings.aliases.get("data_out", set())
 
         self._load()
         self._parse()
@@ -68,14 +58,6 @@ class DUTConfiguration:
         instance.config_path = Path(source_label)
         instance._raw_config = raw
 
-        instance.detected_control_aliases = set()
-        instance.detected_data_in_aliases = set()
-        instance.detected_data_out_aliases = set()
-
-        instance.control_aliases = settings.aliases.get("control", set())
-        instance.data_in_aliases = settings.aliases.get("data_in", set())
-        instance.data_out_aliases = settings.aliases.get("data_out", set())
-
         instance._parse()
         return instance
 
@@ -89,14 +71,12 @@ class DUTConfiguration:
         Performs cross-object checks that cannot be expressed inside a single
         Pydantic model:
           - Enum references on ports are resolved to live EnumType objects.
-          - All required port group categories are present.
 
         Returns:
             list[str]: Accumulated error messages. Empty list means valid.
         """
         errors: list[str] = []
         errors.extend(self._resolve_port_enums())
-        errors.extend(self._resolve_group_aliases())
         return errors
 
     def get_enum(self, enum_name: str) -> EnumType | None:
@@ -124,40 +104,13 @@ class DUTConfiguration:
                 return port
         return None
 
-    def get_control_ports(self) -> list[Port]:
-        """Get all control ports.
+    def get_signal_ports(self) -> list[Port]:
+        """Get all non-clock, non-reset ports.
 
         Returns:
-            list[Port]: List of ports in control group.
+            list[Port]: List of signal ports.
         """
-        return [p for p in self.ports if p.group and p.group.lower() in self.control_aliases]
-
-    def get_data_input_ports(self) -> list[Port]:
-        """Get all data input ports.
-
-        Returns:
-            list[Port]: List of ports in data input group.
-        """
-        return [p for p in self.ports if p.group and p.group.lower() in self.data_in_aliases]
-
-    def get_data_output_ports(self) -> list[Port]:
-        """Get all data output ports.
-
-        Returns:
-            list[Port]: List of ports in data output group.
-        """
-        return [p for p in self.ports if p.group and p.group.lower() in self.data_out_aliases]
-
-    def get_ports_by_group(self, group: str) -> list[Port]:
-        """Get ports by group name.
-
-        Args:
-            group: Name of the group to filter by.
-
-        Returns:
-            list[Port]: List of ports matching the group.
-        """
-        return [p for p in self.ports if p.group and p.group.lower() == group.lower()]
+        return [p for p in self.ports if not p.is_clock and not p.is_reset]
 
     def get_clock_ports(self) -> list[Port]:
         """Get all clock ports.
@@ -286,35 +239,3 @@ class DUTConfiguration:
                 errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
         return errors
 
-    def _resolve_group_aliases(self) -> list[str]:
-        """Detect which group aliases are used and flag missing categories.
-
-        Returns:
-            list[str]: Errors for each missing required group category.
-        """
-        for port in self.ports:
-            if not port.group:
-                continue
-            group_lower = port.group.lower()
-            if group_lower in self.control_aliases:
-                self.detected_control_aliases.add(port.group)
-            elif group_lower in self.data_in_aliases:
-                self.detected_data_in_aliases.add(port.group)
-            elif group_lower in self.data_out_aliases:
-                self.detected_data_out_aliases.add(port.group)
-
-        missing: list[str] = []
-        if not self.detected_control_aliases:
-            missing.append("Control (e.g., 'ctrl', 'mode')")
-        if not self.detected_data_in_aliases:
-            missing.append("Data Input (e.g., 'din', 'operand')")
-        if not self.detected_data_out_aliases:
-            missing.append("Data Output (e.g., 'dout', 'result')")
-
-        if missing:
-            return [
-                f"Configuration Error: The following required port groups are missing from "
-                f"'{self.dut_info.name}': {', '.join(missing)}. "
-                f"Please ensure ports are assigned valid groups in the YAML config."
-            ]
-        return []

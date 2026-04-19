@@ -129,7 +129,6 @@ class Port(BaseModel):
     width: Any
 
     description: str | None = None
-    group: str | None = None  # e.g., "clock", "reset", "data", "control"
 
     is_clock: bool = False
     is_reset: bool = False

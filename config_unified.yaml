@@ -60,16 +60,16 @@ enums:
 ports:
   - { name: CLK,        direction: input,  type: logic, width: 1,          is_clock: true,  description: "Clock signal" }
   - { name: RST,        direction: input,  type: logic, width: 1,          is_reset: true,  active_level: high, description: "Reset signal (synchronous)" }
-  - { name: ACT,        direction: input,  type: logic, width: 1,          group: control,  description: "Activate signal" }
-  - { name: OP,         direction: input,  type: logic, width: "(3:0)",    group: control,  enum_name: operation_t, description: "Operation selector" }
-  - { name: MOVI,       direction: input,  type: logic, width: "(1:0)",    group: control,  enum_name: movi_t,      description: "Operand B selector" }
-  - { name: REG_A,      direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Register A operand" }
-  - { name: REG_B,      direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Register B operand" }
-  - { name: MEM,        direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Memory operand" }
-  - { name: IMM,        direction: input,  type: logic, width: DATA_WIDTH, group: data_input, description: "Immediate operand" }
-  - { name: EX_ALU_VLD, direction: output, type: logic, width: 1,          group: output,   description: "Output valid signal" }
-  - { name: EX_ALU,     direction: output, type: logic, width: DATA_WIDTH, group: output,   description: "ALU result" }
-  - { name: ALU_RDY,    direction: output, type: logic, width: 1,          group: output,   description: "ALU ready signal" }
+  - { name: ACT,        direction: input,  type: logic, width: 1,          description: "Activate signal" }
+  - { name: OP,         direction: input,  type: logic, width: "(3:0)",    enum_name: operation_t, description: "Operation selector" }
+  - { name: MOVI,       direction: input,  type: logic, width: "(1:0)",    enum_name: movi_t,      description: "Operand B selector" }
+  - { name: REG_A,      direction: input,  type: logic, width: DATA_WIDTH, description: "Register A operand" }
+  - { name: REG_B,      direction: input,  type: logic, width: DATA_WIDTH, description: "Register B operand" }
+  - { name: MEM,        direction: input,  type: logic, width: DATA_WIDTH, description: "Memory operand" }
+  - { name: IMM,        direction: input,  type: logic, width: DATA_WIDTH, description: "Immediate operand" }
+  - { name: EX_ALU_VLD, direction: output, type: logic, width: 1,          description: "Output valid signal" }
+  - { name: EX_ALU,     direction: output, type: logic, width: DATA_WIDTH, description: "ALU result" }
+  - { name: ALU_RDY,    direction: output, type: logic, width: 1,          description: "ALU ready signal" }
 
 # ============================================================================
 # UVM — Verification Environment

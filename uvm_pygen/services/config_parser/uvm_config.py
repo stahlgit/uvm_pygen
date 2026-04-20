@@ -98,7 +98,14 @@ class UVMConfiguration:
         env = self._raw_config.get("environment", {})
         self.env_name: str = env.get("name", "env")
 
-        self.strategy: ReferenceModelConfig = ReferenceModelConfig(**env.get("reference_model", {}))
+        # Reference model
+        rm_raw = env.get("reference_model", None)
+        if rm_raw is None:
+            self.reference_model = None  # → NO_RM, nie ReferenceModelConfig()
+        else:
+            self.reference_model = ReferenceModelConfig(**rm_raw)
+
+        # self.strategy: ReferenceModelConfig = ReferenceModelConfig(**env.get("reference_model", {}))
 
         self.components: list[Component] = []
         for raw_comp in env.get("components", []):

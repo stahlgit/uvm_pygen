@@ -78,13 +78,17 @@ verification:
 
 environment:
   name: alu_env
-  type: uvm_env
   reference_model: 
     strategy: ap_subscriber
-    #TODO:
-    # strategy: dpi_driver
-    # dpi_function: "alu_ref_model"   # C function name (strategy 2 only)
-    # dpi_header: "alu_ref.h"
+    implementation: sv_class
+
+    # implementation: 
+    #   type: sv_class
+
+    # implementation:
+    #   type: dpi_extern
+    #   function: "alu_ref_model"   # C function name — required ak type == dpi_extern
+    #   header: "alu_ref.h"         # C header — required ak type == dpi_extern
   components:
     - name: alu_agent
       type: uvm_agent

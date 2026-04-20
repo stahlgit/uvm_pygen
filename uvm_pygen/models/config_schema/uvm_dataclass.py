@@ -3,8 +3,15 @@
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.functional_validators import model_validator
 
-from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction, ReferenceModelStrategy
+from uvm_pygen.constants.uvm_enum import (
+    AgentMode,
+    ComponentType,
+    Direction,
+    ReferenceModelImplEnum,
+    ReferenceModelStrategy,
+)
 
 
 class Component(BaseModel):
@@ -121,6 +128,24 @@ class Test(BaseModel):
     coverage_goal: int | None = None
 
 
+class ReferenceModelImplementation(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    type: ReferenceModelImplEnum = ReferenceModelImplEnum.SV_CLASS
+    function: str | None = None  # required for DPI, ignored for SV_CLASS
+    header: str | None = None  # required for DPI, ignored for SV_CLASS
+
+    @model_validator(mode="after")
+    def dpi_requires_function_and_header(self) -> ReferenceModelImplementation:
+        """Ensure that if the implementation type is DPI_EXTERN, both function and header are provided."""
+        if self.type == ReferenceModelImplEnum.DPI_EXTERN:
+            if not self.function:
+                raise ValueError("dpi_extern implementation requires 'function' field")
+            if not self.header:
+                raise ValueError("dpi_extern implementation requires 'header' field")
+        return self
+
+
 class ReferenceModelConfig(BaseModel):
     """Reference model configuration.
 
@@ -129,10 +154,19 @@ class ReferenceModelConfig(BaseModel):
     """
 
     model_config = ConfigDict(
-        json_schema_extra={"yaml_section": "uvm", "yaml_key": "environment", "required": True},
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "environment"},
     )
 
-    strategy: ReferenceModelStrategy | None = None
+    strategy: ReferenceModelStrategy = ReferenceModelStrategy.NO_REFERENCE_MODEL
+    implementation: ReferenceModelImplementation = ReferenceModelImplementation()
+
+    @field_validator("implementation", mode="before")
+    @classmethod
+    def coerce_implementation(cls, v):
+        """Accept shorthand string 'sv_class' as well as full dict."""
+        if isinstance(v, str):
+            return {"type": v}
+        return v
 
 
 class VerificationInfo(BaseModel):

@@ -20,23 +20,9 @@ class DUTInfo(BaseModel):
 
     name: str
     entity_name: str  # for VHDL; ignored for SV/Verilog (defaults to name)
-    ###NOTE: this feels redundant
-    data_width: int
-    output_width: int
-    clock_period: int  # in ns
-    ###
     reset_type: ActiveLevel
     language: str
     description: str | None = None
-
-    @field_validator("data_width", "output_width", "clock_period", mode="before")
-    @classmethod
-    def must_be_positive(cls, v: Any, info) -> int:
-        """Ensure that these fields are positive integers, even if provided as strings in YAML."""
-        v = int(v)
-        if v <= 0:
-            raise ValueError(f"{info.field_name} must be a positive integer, got {v}")
-        return v
 
 
 class Parameter(BaseModel):

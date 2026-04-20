@@ -11,9 +11,6 @@ dut:
   name: alu
   entity_name: ALU_ENT
   description: "Arithmetic Logic Unit with 16 operations"
-  data_width: 8
-  output_width: 16
-  clock_period: 10        # ns
   reset_type: active_high # active_low / active_high
   language: systemverilog
 

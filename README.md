@@ -94,3 +94,23 @@ flowchart TD
 
 ## User-Friendly Regeneration: Preservation of Manual Edits
 UVM_PYGEN automatically preserves manual changes made by user. No special markers or protected areas are needed.
+
+
+## Testbench topology strategy
+```mermaid
+flowchart LR
+    SEQ --> DRV --> RM 
+    DRV --> DUT
+    RM --> SCB
+    DUT--> MON 
+    MON --> SCB
+
+```
+
+```mermaid
+flowchart LR
+    SEQ1 --> DRV1 --> RM 
+    RM --> MON1 --> SCB
+    SEQ2 --> DRV2 --> DUT
+    DUT --> MON2 --> SCB
+```

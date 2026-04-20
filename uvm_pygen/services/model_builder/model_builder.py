@@ -61,7 +61,7 @@ class ModelBuilder:
                 port.model_copy(update={"width": self._get_range_from_port(port)})
             )  # Convert to SV range string
 
-        s# TODO: create interfaces baed on how many are defined in UVM config, right now we will create only one interface
+        # TODO: create interfaces baed on how many are defined in UVM config, right now we will create only one interface
         main_interface = InterfaceModel(
             name=self.loader.uvm.interface_list[0],
             ports=resolved_interface_ports,

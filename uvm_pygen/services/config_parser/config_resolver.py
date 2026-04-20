@@ -48,6 +48,8 @@ class ConfigResolver:
         self._uvm_keys: frozenset[str] = layout.uvm_keys
         self._dut_required_keys: frozenset[str] = layout.dut_required_keys
         self._uvm_required_keys: frozenset[str] = layout.uvm_required_keys
+        self._dut_required_key_groups: tuple[frozenset[str], ...] = layout.dut_required_key_groups
+        self._uvm_required_key_groups: tuple[frozenset[str], ...] = layout.uvm_required_key_groups
         self._search_dir = Path(search_dir).resolve()
 
     def resolve(
@@ -123,12 +125,18 @@ class ConfigResolver:
                 f"Unified config '{unified_path}' contains unrecognised top-level keys (ignored): {sorted(unknown)}"
             )
 
-        missing_dut = self._dut_required_keys - set(dut_raw)
+        present = set(dut_raw)
+        missing_dut = [g for g in self._dut_required_key_groups if not (g & present)]
         if missing_dut:
-            raise ValueError(f"Unified config '{unified_path}' is missing required DUT keys: {sorted(missing_dut)}.")
-        missing_uvm = self._uvm_required_keys - set(uvm_raw)
+            raise ValueError(
+                f"Unified config '{unified_path}' is missing required DUT keys: {[sorted(g) for g in missing_dut]}."
+            )
+        present = set(uvm_raw)
+        missing_uvm = [g for g in self._uvm_required_key_groups if not (g & present)]
         if missing_uvm:
-            raise ValueError(f"Unified config '{unified_path}' is missing required UVM keys: {sorted(missing_uvm)}.")
+            raise ValueError(
+                f"Unified config '{unified_path}' is missing required UVM keys: {[sorted(g) for g in missing_uvm]}."
+            )
 
         return dut_raw, uvm_raw
 

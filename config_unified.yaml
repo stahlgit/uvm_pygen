@@ -14,7 +14,7 @@ dut:
   reset_type: active_high # active_low / active_high
   language: systemverilog
 
-parameters:
+params:
   - name: DATA_WIDTH
     value: 8
     description: "Width of data operands"
@@ -25,7 +25,7 @@ parameters:
     value: 255
     description: "Maximum value for data operands (for constraints)"
 
-enums:
+enumerations:
   operation_t:
     type: "logic [3:0]"
     values:
@@ -76,7 +76,7 @@ verification:
   testbench_name: "reference_testbench"
   uvm_version: "1.2" ##TODO: remove since i am testing on 1.1 
 
-environment:
+env:
   name: alu_env
   reference_model: 
     strategy: ap_subscriber

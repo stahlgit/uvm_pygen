@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
+from uvm_pygen.constants.config_alliases import ENV_BLOCK_ALIASES, TRANSACTION_ALIASES
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
 from uvm_pygen.models.config_schema.uvm_dataclass import Component, ReferenceModelConfig, Sequence, TransactionField
 
@@ -95,7 +96,7 @@ class UVMConfiguration:
         self.uvm_version: str = verif.get("uvm_version", "1.2")
 
         # Environment
-        env = self._raw_config.get("environment", {})
+        env = next((self._raw_config[k] for k in ENV_BLOCK_ALIASES if k in self._raw_config), {})
         self.env_name: str = env.get("name", "env")
 
         # Reference model
@@ -116,7 +117,7 @@ class UVMConfiguration:
                 raise ValueError(f"Component '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Transaction
-        trans = self._raw_config.get("transactions", {})
+        trans = next((self._raw_config[k] for k in TRANSACTION_ALIASES if k in self._raw_config), {})
         self.transaction_name: str = trans.get("name", "Transaction")
         self.auto_generate_transaction: bool = trans.get("auto_generate_from_dut", False)
 

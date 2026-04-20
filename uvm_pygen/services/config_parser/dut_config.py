@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from uvm_pygen.constants.config_alliases import ENUM_ALIASES, PARAMETER_ALIASES
 from uvm_pygen.models.config_schema.dut_dataclass import (
     DUTInfo,
     EnumType,
@@ -192,13 +193,17 @@ class DUTConfiguration:
 
         # Parameters
         try:
-            self.parameters: list[Parameter] = [Parameter(**p) for p in self._raw_config.get("parameters", [])]
+            params_raw = next((self._raw_config[k] for k in PARAMETER_ALIASES if k in self._raw_config), [])
+            self.parameters: list[Parameter] = [Parameter(**p) for p in params_raw]
         except ValidationError as exc:
             raise ValueError(f"Parameter validation failed in '{source}':\n{exc}") from exc
 
         # Enums
         self.enums: dict[str, EnumType] = {}
-        for enum_name, enum_data in self._raw_config.get("enums", {}).items():
+        # for enum_name, enum_data in self._raw_config.get("enums", {}).items():
+        for enum_name, enum_data in next(
+            (self._raw_config[k] for k in ENUM_ALIASES if k in self._raw_config), {}
+        ).items():
             try:
                 values = [EnumValue(**v) for v in enum_data["values"]]
                 self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)
@@ -238,4 +243,3 @@ class DUTConfiguration:
             else:
                 errors.append(f"Port '{port.name}' references unknown enum: '{port.enum_name}'")
         return errors
-

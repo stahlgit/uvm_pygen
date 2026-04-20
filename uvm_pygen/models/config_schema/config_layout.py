@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from uvm_pygen.constants.config_alliases import YAML_KEY_ALIAS_GROUPS
 from uvm_pygen.models.config_schema.dut_dataclass import (
     Constraints,
     DUTInfo,
@@ -37,29 +38,21 @@ from uvm_pygen.models.config_schema.uvm_dataclass import (
 
 
 def _yaml_key(model: type[BaseModel]) -> str | None:
-    """Return the yaml_key declared in a model's json_schema_extra, or None.
-
-    Args:
-        model: A Pydantic BaseModel class.
-
-    Returns:
-        The yaml_key value from json_schema_extra, or None if not found.
-    """
     extra = model.model_config.get("json_schema_extra") or {}
     return extra.get("yaml_key")
 
 
 def _yaml_section(model: type[BaseModel]) -> str | None:
-    """Return the yaml_section declared in a model's json_schema_extra, or None.
-
-    Args:
-        model: A Pydantic BaseModel class.
-
-    Returns:
-        The yaml_section value from json_schema_extra, or None if not found.
-    """
     extra = model.model_config.get("json_schema_extra") or {}
     return extra.get("yaml_section")
+
+
+def _expand_with_aliases(keys: set[str]) -> frozenset[str]:
+    """Expand each key with its aliases from YAML_KEY_ALIAS_GROUPS."""
+    expanded = set(keys)
+    for key in keys:
+        expanded |= YAML_KEY_ALIAS_GROUPS.get(key, frozenset())
+    return frozenset(expanded)
 
 
 # All top-level models that carry yaml_section / yaml_key metadata.
@@ -84,16 +77,16 @@ class ConfigLayout:
     """Derived YAML layout — built once from the dataclass metadata.
 
     Attributes:
-        dut_keys: All top-level YAML keys that belong to a DUT config file.
-        uvm_keys: All top-level YAML keys that belong to a UVM config file.
-        dut_required_keys: Subset of dut_keys that must be present for a file
-            to be recognised as a DUT config (used for unified-file detection).
-        uvm_required_keys: Subset of uvm_keys that must be present for a file
-            to be recognised as a UVM config.
+        dut_keys: All top-level YAML keys (including aliases) for a DUT config.
+        uvm_keys: All top-level YAML keys (including aliases) for a UVM config.
+        dut_required_keys: Expanded flat set of required DUT keys (all aliases included).
+        uvm_required_keys: Expanded flat set of required UVM keys (all aliases included).
+        dut_required_key_groups: Tuple of alias groups; at least one key per group must
+            be present for the DUT section to be valid.
+        uvm_required_key_groups: Same for the UVM section.
     """
 
     def __init__(self) -> None:
-        """Introspect all models and build the key sets."""
         dut: set[str] = set()
         uvm: set[str] = set()
 
@@ -107,23 +100,20 @@ class ConfigLayout:
             elif section == "uvm":
                 uvm.add(key)
 
-        self.dut_keys: frozenset[str] = frozenset(dut)
-        self.uvm_keys: frozenset[str] = frozenset(uvm)
+        self.dut_keys: frozenset[str] = _expand_with_aliases(dut)
+        self.uvm_keys: frozenset[str] = _expand_with_aliases(uvm)
 
-        # "Required" keys are those whose models are marked required=True.
-        # Everything else is optional (present only in some configs).
-        self.dut_required_keys: frozenset[str] = self._required_keys("dut")
-        self.uvm_required_keys: frozenset[str] = self._required_keys("uvm")
+        raw_dut_req = self._required_keys_raw("dut")
+        raw_uvm_req = self._required_keys_raw("uvm")
 
-    def _required_keys(self, section: str) -> frozenset[str]:
-        """Extract required keys for a given section.
+        self.dut_required_keys: frozenset[str] = _expand_with_aliases(raw_dut_req)
+        self.uvm_required_keys: frozenset[str] = _expand_with_aliases(raw_uvm_req)
 
-        Args:
-            section: The YAML section name ("dut" or "uvm").
+        self.dut_required_key_groups: tuple[frozenset[str], ...] = self._build_required_key_groups(raw_dut_req)
+        self.uvm_required_key_groups: tuple[frozenset[str], ...] = self._build_required_key_groups(raw_uvm_req)
 
-        Returns:
-            A frozenset of required keys for the section.
-        """
+    def _required_keys_raw(self, section: str) -> set[str]:
+        """Return canonical required keys for a section (no alias expansion)."""
         keys: set[str] = set()
         for model in _ALL_MODELS:
             extra = model.model_config.get("json_schema_extra") or {}
@@ -131,7 +121,19 @@ class ConfigLayout:
                 key = extra.get("yaml_key")
                 if key:
                     keys.add(key)
-        return frozenset(keys)
+        return keys
+
+    @staticmethod
+    def _build_required_key_groups(raw_keys: set[str]) -> tuple[frozenset[str], ...]:
+        """Build alias groups for required keys.
+
+        Each group contains all accepted forms of the key; at least one must
+        be present in the YAML for the requirement to be satisfied.
+        """
+        return tuple(
+            YAML_KEY_ALIAS_GROUPS.get(key, frozenset({key}))
+            for key in raw_keys
+        )
 
 
 # Module-level singleton — imported by ConfigResolver and anywhere else that needs to reason about the YAML layout without touching raw strings.

@@ -1,80 +1,16 @@
 """Models representing the environment structure for UVM testbench generation."""
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
-from uvm_pygen.models.config_schema.dut_dataclass import EnumType, Parameter, Port
+from uvm_pygen.constants.uvm_enum import AgentMode
+from uvm_pygen.models.config_schema.dut_dataclass import EnumType, Parameter
+from uvm_pygen.models.logic_schema.agent_model import AgentModel
+from uvm_pygen.models.logic_schema.interface_model import InterfaceModel
+from uvm_pygen.models.logic_schema.reference_model import ReferenceModelModel
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
 from uvm_pygen.models.logic_schema.transaction_model import TransactionModel
 from uvm_pygen.models.utils.util_annotation import NonEmptyStr
-
-
-class InterfaceModel(BaseModel):
-    """Represents a SystemVerilog interface (e.g. alu_if.sv).
-
-    Holds resolved Port objects rather than port name strings so generation
-    units can inspect direction, width, and enum references directly.
-    """
-
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    name: NonEmptyStr
-    ports: list[Port]
-    clock: Port | None = None
-    reset: Port | None = None
-
-    @field_validator("ports")
-    @classmethod
-    def ports_must_not_be_empty(cls, v: list[Port]) -> list[Port]:
-        """Ensure the interface has at least one port (a clock-only interface is unlikely)."""
-        if not v:
-            raise ValueError("InterfaceModel must have at least one port")
-        return v
-
-    # @model_validator(mode="after")
-    # def clock_and_reset_must_be_in_ports(self) -> InterfaceModel:
-    #     """Ensure clock/reset references are actually present in the port list."""
-    #     port_names = {p.name for p in self.ports}
-    #     if self.clock and self.clock.name not in port_names:
-    #         raise ValueError(f"InterfaceModel '{self.name}': clock port '{self.clock.name}' is not in the ports list")
-    #     if self.reset and self.reset.name not in port_names:
-    #         raise ValueError(f"InterfaceModel '{self.name}': reset port '{self.reset.name}' is not in the ports list")
-    #     return self
-
-
-class AgentModel(BaseModel):
-    """Represents a configured UVM agent, ready for rendering.
-
-    ``parts`` declares which sub-components (driver, sequencer, monitor) this
-    agent contains.  Use ``has()`` in FileSpec conditions and Jinja2 templates
-    to guard per-component file generation.
-    """
-
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-
-    name: NonEmptyStr
-    mode: AgentMode
-    interface_instance: InterfaceModel
-    parts: frozenset[ComponentType]  # frozenset: immutable, hashable, correct for a set of flags
-
-    @field_validator("name")
-    @classmethod
-    def name_must_be_nonempty(cls, v: str) -> str:
-        """Ensure agent name is not empty."""
-        if not v.strip():
-            raise ValueError("AgentModel.name must not be empty")
-        return v
-
-    @field_validator("parts", mode="before")
-    @classmethod
-    def coerce_parts_to_frozenset(cls, v) -> frozenset:
-        """Accept set, list, or frozenset from ModelBuilder."""
-        return frozenset(v)
-
-    def has(self, part: ComponentType) -> bool:
-        """Return True if this agent includes the given component type."""
-        return part in self.parts
 
 
 class EnvModel(BaseModel):
@@ -113,6 +49,8 @@ class EnvModel(BaseModel):
 
     dut_instance_name: NonEmptyStr = "dut_inst"
     dut_entity_name: NonEmptyStr = "dut_entity"
+
+    reference_model: ReferenceModelModel | None = None
 
     @model_validator(mode="after")
     def interfaces_match_agents(self) -> EnvModel:

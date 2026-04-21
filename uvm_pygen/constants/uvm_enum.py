@@ -53,7 +53,15 @@ class ActiveLevel(StrEnum):
 
 
 class ReferenceModelStrategy(StrEnum):
-    """Defines the strategy for implementing a reference model in a UVM environment."""
+    """Testbench topology — defines how the reference model is wired."""
 
     AP_SUBSCRIBER = auto()
-    DPI_DRIVER = auto()
+    DUAL_AGENT = auto()
+    NO_REFERENCE_MODEL = auto()
+
+
+class ReferenceModelImplEnum(StrEnum):
+    """Defines the implementation type of a reference model."""
+
+    SV_CLASS = auto()
+    DPI_EXTERN = auto()

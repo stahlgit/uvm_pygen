@@ -2,16 +2,31 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import override
 
-import yaml
 from pydantic import ValidationError
 
+from uvm_pygen.constants.config_alliases import (
+    AGENT_ALIASES,
+    ENV_BLOCK_ALIASES,
+    INTERFACE_ALIASES,
+    REFERENCE_MODEL_ALIASES,
+    TRANSACTION_ALIASES,
+)
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
-from uvm_pygen.models.config_schema.uvm_dataclass import Component, ReferenceModelConfig, Sequence, TransactionField
+from uvm_pygen.models.config_schema.uvm_dataclass import (
+    AgentConfig,
+    InterfaceDeclaration,
+    ReferenceModelConfig,
+    Sequence,
+    TransactionField,
+)
+from uvm_pygen.services.config_parser.base_config import BaseConfiguration
+
+UNKNOWN = "<unknown>"
 
 
-class UVMConfiguration:
+class UVMConfiguration(BaseConfiguration):
     """UVM Configuration - Verification Environment.
 
     Pydantic models validate individual components/sequences on construction;
@@ -19,40 +34,15 @@ class UVMConfiguration:
     presence, sequence parent references, transaction name coherence).
     """
 
-    def __init__(self, config_path: str | Path) -> None:
-        """Initialize UVM configuration from YAML file."""
-        self.config_path = Path(config_path)
-        self._raw_config: dict = {}
+    @override
+    def _init_extra_state(self) -> None:
+        """Initialize subclass-specific instance state before _parse() is called."""
         self.interface_list: list[str] = []
-        self._load()
-        self._parse()
-
-    @classmethod
-    def from_dict(cls, raw: dict, source_label: str = "<in-memory>") -> UVMConfiguration:
-        """Construct a UVMConfiguration from an already-loaded dict.
-
-        This is used when the config comes from a unified YAML file that has
-        already been read and split by ``config_resolver.split_unified_config``.
-
-        Parameters
-        ----------
-        raw:
-            Dict with the same structure as a UVM YAML file (``verification``,
-            ``environment``, ``transactions``, ``sequences``, … keys at top level).
-        source_label:
-            Human-readable label used in error messages (e.g. the unified file path).
-        """
-        instance = cls.__new__(cls)
-        instance.config_path = Path(source_label)
-        instance._raw_config = raw
-        instance.interface_list = []
-        instance._parse()
-        return instance
 
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
-
+    @override
     def validate(self) -> list[str]:
         """Validate configuration consistency.
 
@@ -60,8 +50,7 @@ class UVMConfiguration:
             list[str]: Accumulated error messages. Empty list means valid.
         """
         errors: list[str] = []
-        errors.extend(self._validate_components())
-        errors.extend(self._validate_sequences())
+        errors.extend(self._validate_agents())
         return errors
 
     def get_sequence(self, seq_name: str) -> Sequence | None:
@@ -75,11 +64,7 @@ class UVMConfiguration:
     # Private — loading & parsing
     # -------------------------------------------------------------------------
 
-    def _load(self) -> None:
-        """Load raw YAML into _raw_config."""
-        with open(self.config_path) as f:
-            self._raw_config = yaml.safe_load(f)
-
+    @override
     def _parse(self) -> None:
         """Parse raw config dict into Pydantic model instances.
 
@@ -92,24 +77,39 @@ class UVMConfiguration:
         verif = self._raw_config.get("verification", {})
         self.project_name: str = verif.get("project_name", "uvm_project")
         self.testbench_name: str = verif.get("testbench_name", "tb_top")
-        self.uvm_version: str = verif.get("uvm_version", "1.2")
 
         # Environment
-        env = self._raw_config.get("environment", {})
+        env = self._get_aliased(self._raw_config, ENV_BLOCK_ALIASES, {})
         self.env_name: str = env.get("name", "env")
 
-        self.strategy: ReferenceModelConfig = ReferenceModelConfig(**env.get("reference_model", {}))
+        # Reference model
+        rm_raw = self._get_aliased(env, REFERENCE_MODEL_ALIASES, None)
+        if rm_raw is None:
+            self.reference_model = None  # → NO_RM, nie ReferenceModelConfig()
+        else:
+            self.reference_model = ReferenceModelConfig(**rm_raw)
 
-        self.components: list[Component] = []
-        for raw_comp in env.get("components", []):
+        # Interfaces
+        self.interfaces: list[InterfaceDeclaration] = []
+        for raw_if in self._get_aliased(env, INTERFACE_ALIASES, []):
             try:
-                self.components.append(Component(**raw_comp))
+                self.interfaces.append(InterfaceDeclaration(**raw_if))
             except ValidationError as exc:
-                name = raw_comp.get("name", "<unknown>")
-                raise ValueError(f"Component '{name}' validation failed in '{source}':\n{exc}") from exc
+                name = raw_if.get("name", UNKNOWN)
+                raise ValueError(f"Interface '{name}' validation failed in '{source}':\n{exc}") from exc
+
+        # Agents
+        raw_agents = self._get_aliased(env, AGENT_ALIASES, [])
+        self.agents: list[AgentConfig] = []
+        for raw_agent in raw_agents:
+            try:
+                self.agents.append(AgentConfig(**raw_agent))
+            except ValidationError as exc:
+                name = raw_agent.get("name", UNKNOWN)
+                raise ValueError(f"Agent '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Transaction
-        trans = self._raw_config.get("transactions", {})
+        trans = self._get_aliased(self._raw_config, TRANSACTION_ALIASES, {})
         self.transaction_name: str = trans.get("name", "Transaction")
         self.auto_generate_transaction: bool = trans.get("auto_generate_from_dut", False)
 
@@ -118,7 +118,7 @@ class UVMConfiguration:
             try:
                 self.field_overrides.append(TransactionField(**raw_field))
             except ValidationError as exc:
-                name = raw_field.get("name", "<unknown>")
+                name = raw_field.get("name", UNKNOWN)
                 raise ValueError(f"TransactionField '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Sequences
@@ -127,41 +127,35 @@ class UVMConfiguration:
             try:
                 self.sequences.append(Sequence(**raw_seq))
             except ValidationError as exc:
-                name = raw_seq.get("name", "<unknown>")
+                name = raw_seq.get("name", UNKNOWN)
                 raise ValueError(f"Sequence '{name}' validation failed in '{source}':\n{exc}") from exc
 
     # -------------------------------------------------------------------------
     # Private — cross-object validation helpers
     # -------------------------------------------------------------------------
 
-    def _validate_components(self) -> list[str]:
-        """Validate all components; dispatch per-type checks."""
-        errors: list[str] = []
-        for component in self.components:
-            if ComponentType(component.type) == ComponentType.AGENT:
-                errors.extend(self._validate_agent(component))
+    def _validate_agents(self) -> list[str]:
+        errors = []
+        iface_names = {i.name for i in self.interfaces}
+        for agent in self.agents:
+            if agent.interface not in iface_names:
+                errors.append(
+                    f"Agent '{agent.name}' references interface '{agent.interface}' "
+                    f"which is not declared in env.interfaces."
+                )
+            if agent.mode == AgentMode.ACTIVE:
+                if ComponentType.DRIVER not in agent.components:
+                    errors.append(f"Active agent '{agent.name}' must include a driver.")
+                if ComponentType.SEQUENCER not in agent.components:
+                    errors.append(f"Active agent '{agent.name}' must include a sequencer.")
         return errors
 
-    def _validate_agent(self, component: Component) -> list[str]:
-        """Validate agent-specific rules."""
-        errors: list[str] = []
-
-        if not component.interface:
-            errors.append(f"Agent '{component.name}' must have an associated interface.")
-        else:
-            self.interface_list.append(component.interface)
-
-        if component.mode and AgentMode(component.mode) == AgentMode.ACTIVE:
-            errors.extend(self._ensure_subcomponent_enabled(component, ComponentType.DRIVER))
-            errors.extend(self._ensure_subcomponent_enabled(component, ComponentType.SEQUENCER))
-        return errors
-
-    def _ensure_subcomponent_enabled(self, parent: Component, sub_type: ComponentType) -> list[str]:
-        """Return an error list if a required subcomponent is absent or disabled."""
-        sub = parent.subcomponents.get(sub_type.value) or parent.subcomponents.get(sub_type.name.lower())
-        if not sub or not sub.get("enabled", False):
-            return [f"Active agent '{parent.name}' must have an enabled {sub_type.name.lower()} component."]
-        return []
+    # def _ensure_subcomponent_enabled(self, parent: Component, sub_type: ComponentType) -> list[str]:
+    #     """Return an error list if a required subcomponent is absent or disabled."""
+    #     sub = parent.subcomponents.get(sub_type.value) or parent.subcomponents.get(sub_type.name.lower())
+    #     if not sub or not sub.get("enabled", False):
+    #         return [f"Active agent '{parent.name}' must have an enabled {sub_type.name.lower()} component."]
+    #     return []
 
     def _validate_sequences(self) -> list[str]:
         """Validate sequence parent references and transaction name consistency."""

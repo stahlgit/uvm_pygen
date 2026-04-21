@@ -11,13 +11,10 @@ dut:
   name: alu
   entity_name: ALU_ENT
   description: "Arithmetic Logic Unit with 16 operations"
-  data_width: 8
-  output_width: 16
-  clock_period: 10        # ns
   reset_type: active_high # active_low / active_high
   language: systemverilog
 
-parameters:
+params:
   - name: DATA_WIDTH
     value: 8
     description: "Width of data operands"
@@ -28,7 +25,7 @@ parameters:
     value: 255
     description: "Maximum value for data operands (for constraints)"
 
-enums:
+enumerations:
   operation_t:
     type: "logic [3:0]"
     values:
@@ -58,8 +55,23 @@ enums:
       - { value: 3, name: UNKNOWN,      description: "Invalid - should not be used" }
 
 ports:
-  - { name: CLK,        direction: input,  type: logic, width: 1,          is_clock: true,  description: "Clock signal" }
-  - { name: RST,        direction: input,  type: logic, width: 1,          is_reset: true,  active_level: high, description: "Reset signal (synchronous)" }
+  - name: CLK
+    direction: input  
+    type: logic
+    width: 1          
+    is_clock: true
+    description: "Clock signal"
+    group: "Control Signals"
+  
+  - name: RST
+    direction: input  
+    type: logic 
+    width: 1          
+    is_reset: true
+    active_level: high 
+    description: "Reset signal (synchronous)"
+    group: "Control Signals"
+
   - { name: ACT,        direction: input,  type: logic, width: 1,          description: "Activate signal" }
   - { name: OP,         direction: input,  type: logic, width: "(3:0)",    enum_name: operation_t, description: "Operation selector" }
   - { name: MOVI,       direction: input,  type: logic, width: "(1:0)",    enum_name: movi_t,      description: "Operand B selector" }
@@ -77,27 +89,53 @@ ports:
 verification:
   project_name: "ALU Functional Verification"
   testbench_name: "reference_testbench"
-  uvm_version: "1.2" ##TODO: remove since i am testing on 1.1 
 
-environment:
+env:
   name: alu_env
-  type: uvm_env
   reference_model: 
     strategy: ap_subscriber
-    #TODO:
-    # strategy: dpi_driver
-    # dpi_function: "alu_ref_model"   # C function name (strategy 2 only)
-    # dpi_header: "alu_ref.h"
-  components:
-    - name: alu_agent
-      type: uvm_agent
+    implementation: sv_class
+
+    # implementation: 
+    #   type: sv_class
+
+    # implementation:
+    #   type: dpi_extern
+    #   function: "alu_ref_model"   # C function name — required ak type == dpi_extern
+    #   header: "alu_ref.h"         # C header — required ak type == dpi_extern
+
+    connects:
+      - from: write_agent.driver.ap        # analysis port on driver
+        to: reference_model.analysis_export
+    
+      - from: write_agent.monitor.ap
+        to: reference_model.analysis_export  # RM can have multiple exports
+    
+      - from: read_agent.monitor.ap
+        to: scoreboard.actual_export
+    
+      - from: reference_model.ap_expected
+        to: scoreboard.expected_export
+  
+  interfaces:
+    - name: write_if
+      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM]
+    - name: read_if
+      ports: ["Control Signals", RD_EN, RD_DATA, EMPTY]
+    
+  agents:
+    - name: write_agent
       mode: active
-      interface: alu_if
-      subcomponents:
-        driver:    { enabled: true, type: uvm_driver }
-        sequencer: { enabled: true, type: uvm_sequencer }
-        monitor:   { enabled: true, type: uvm_monitor }
-        coverage:  { enabled: true, type: uvm_subscriber }
+      interface: write_if
+      components:
+      - driver
+      - sequencer
+      - monitor
+    - name: read_agent
+      mode: passive
+      interface: read_if
+      components:
+      - monitor
 
 transactions:
   name: AluTransaction

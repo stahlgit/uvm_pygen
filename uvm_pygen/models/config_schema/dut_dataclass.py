@@ -115,6 +115,7 @@ class Port(BaseModel):
     width: Any
 
     description: str | None = None
+    group: str | None = None  # optional grouping for interface generation
 
     is_clock: bool = False
     is_reset: bool = False

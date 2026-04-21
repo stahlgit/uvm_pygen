@@ -80,7 +80,6 @@ ports:
 verification:
   project_name: "Timer Functional Verification"
   testbench_name: "timer_testbench"
-  uvm_version: "1.2"
 
 environment:
   name: timer_env

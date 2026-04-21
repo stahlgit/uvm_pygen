@@ -13,7 +13,10 @@ ENUM_ALIASES: frozenset[str] = frozenset({"enums", "enum", "enumerations", "enum
 REFERENCE_MODEL_ALIASES: frozenset[str] = frozenset(
     {"reference_model", "ref_model", "refmodel", "model", "uvm_reference_model"}
 )
-COMPONENT_ALIASES: frozenset[str] = frozenset({"components", "component", "comps", "comp", "uvm_components"})
+INTERFACE_ALIASES: frozenset[str] = frozenset({"interfaces", "interface", "uvm_interfaces", "ifs", "if"})
+AGENT_ALIASES: frozenset[str] = frozenset(
+    {"agents", "agent", "uvm_agents", "components", "component", "uvm_components"}
+)
 
 # Maps each canonical yaml_key to its full alias group (canonical included).
 # ConfigLayout uses this to expand uvm_keys/dut_keys and build required-key groups.
@@ -23,4 +26,6 @@ YAML_KEY_ALIAS_GROUPS: dict[str, frozenset[str]] = {
     "parameters": PARAMETER_ALIASES,
     "enums": ENUM_ALIASES,
     "reference_model": REFERENCE_MODEL_ALIASES,
+    "interfaces": INTERFACE_ALIASES,
+    "agents": AGENT_ALIASES,
 }

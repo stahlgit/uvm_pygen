@@ -40,7 +40,6 @@ ports:
 verification:
   project_name: "FIFO Functional Verification"
   testbench_name: "fifo_testbench"
-  uvm_version: "1.2"
 
 environment:
   name: fifo_env

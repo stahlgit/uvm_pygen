@@ -18,7 +18,7 @@ from uvm_pygen.models.generation.registry import GenerationRegistry
 from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.generation.file_manager import FileManager
 from uvm_pygen.services.generation.renderer import TemplateRenderer
-from uvm_pygen.services.utils.logger import logger
+from uvm_pygen.services.utils.logger import log_object, logger
 
 """Generation Flow (each layer depends on the previous):
 1. params_pkg       - no deps
@@ -90,7 +90,8 @@ class Generator:
     def generate_all(self) -> None:
         """Run full generation process."""
         logger.info(f"Starting Code Generation for DUT: {self.model.dut_instance_name}")
-        # log_object(self.model, label="Environment Model")
+        log_object(self.model, label="Environment Model")
+        return
 
         self._bootstrap_registry()
         units = self._build_units()

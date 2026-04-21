@@ -1,7 +1,10 @@
 """Service to build Logic Models from Raw Configurations."""
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
+from uvm_pygen.models.config_schema.dut_dataclass import Port
+from uvm_pygen.models.config_schema.uvm_dataclass import Connection
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
+from uvm_pygen.models.logic_schema.reference_model import ReferenceModelModel, ResolvedConnection
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
 from uvm_pygen.models.logic_schema.transaction_model import SvConstraint, SvVariable, TransactionModel
@@ -16,30 +19,6 @@ class ModelBuilder:
         """Initialize with DUT and UVM configurations."""
         self.loader = loader
 
-    def summary(self, env_model: EnvModel) -> None:
-        """Prints a summary of the constructed Environment Model."""
-        print("\n" + "=" * 70)
-        print("INTERNAL MODEL SUMMARY")
-        print("=" * 70)
-
-        print(f"Transaction: {env_model.transaction.class_name}")
-        print(f"  - Variables: {[v.name for v in env_model.transaction.variables]}")
-
-        print(f"\nInterface: {env_model.interfaces[0].name}")
-        print(f"  - Ports: {len(env_model.interfaces[0].ports)}")
-
-        print(f"\nAgents: {len(env_model.agents)}")
-        for agent in env_model.agents:
-            print(f"  - {agent.name} ({agent.active})")
-
-        if env_model.scoreboard:
-            print(f"\nScoreboard: {env_model.scoreboard.name}")
-            print(f"  - Exports: {env_model.scoreboard.analysis_exports}")
-
-        print(f"\nSequences: {len(env_model.sequences)}")
-        for seq in env_model.sequences:
-            print(f"  - {seq.name} (Base: {seq.base_class})")
-
     def build(self) -> EnvModel:
         """Constructs the complete Environment Model."""
         logger.info("Building Logic Models...")
@@ -47,61 +26,40 @@ class ModelBuilder:
         """TODO: decide if there will be multiple interfaces, or just one per run.
         If multiple, we need to map them from UVM config to DUT ports - filter ports by interface name.
         """
-        ### TRANSACTION
-        transaction_model = self._build_transaction_model()
 
         ### INTERFACE
-        clk_ports = self.loader.dut.get_clock_ports()
-        rst_ports = self.loader.dut.get_reset_ports()
-        interface_ports = self.loader.dut.get_signal_ports()
-
-        resolved_interface_ports = []
-        for port in interface_ports:
-            resolved_interface_ports.append(
-                port.model_copy(update={"width": self._get_range_from_port(port)})
-            )  # Convert to SV range string
-
-        # TODO: create interfaces baed on how many are defined in UVM config, right now we will create only one interface
-        main_interface = InterfaceModel(
-            name=self.loader.uvm.interface_list[0],
-            ports=resolved_interface_ports,
-            clock=clk_ports[0] if clk_ports else None,
-            reset=rst_ports[0] if rst_ports else None,
-        )
+        interface_models = self._build_interface_models()
 
         ### AGENTS
         agents = []
-        for comp in self.loader.uvm.components:
-            if ComponentType(comp.type) == ComponentType.AGENT:
-                parts = {
-                    ComponentType(part) for part in comp.subcomponents if part in {part.value for part in ComponentType}
-                }
-                agent_model = AgentModel(
-                    name=comp.name,
-                    mode=AgentMode(comp.mode),
-                    interface_instance=main_interface,
-                    parts=parts,
-                )
-                agents.append(agent_model)
-
-        ### SCOREBOARD
-        scoreboard_model = self._build_scoreboard_model()
-
-        ### SEQUENCES
-        sequence_models = self._build_sequences()
+        for agent in self.loader.uvm.agents:
+            iface_model = interface_models.get(agent.interface)
+            if iface_model is None:
+                # Should have been caught by uvm_config validation, but guard anyway
+                raise ValueError(f"Agent '{agent.name}' references unknown interface '{agent.interface}'")
+            agent_model = AgentModel(
+                name=agent.name,
+                mode=AgentMode(agent.mode),
+                interface_instance=iface_model,
+                parts=frozenset(agent.components),
+            )
+            agents.append(agent_model)
 
         return EnvModel(
-            project_name=self.loader.uvm.project_name,  # TODO: this here or higher ? nothing is higher right now
+            project_name=self.loader.uvm.project_name,
             testbench_name=self.loader.uvm.testbench_name,
             agents=agents,
-            interfaces=[main_interface],
-            scoreboard=scoreboard_model,
-            transaction=transaction_model,
-            sequences=sequence_models,
+            interfaces=list(interface_models.values()),
+            ### Build scoreboard
+            scoreboard=self._build_scoreboard_model(agents),
+            transaction=self._build_transaction_model(),
+            ### build sequences
+            sequences=self._build_sequences(),
             parameters=self.loader.dut.parameters,
             enums=self.loader.dut.enums,
             dut_instance_name=self.loader.dut.dut_info.name,
             dut_entity_name=self.loader.dut.dut_info.entity_name,
+            reference_model=self._build_reference_model(agents),
         )
 
     def _build_transaction_model(self) -> TransactionModel:
@@ -136,14 +94,62 @@ class ModelBuilder:
             macros=[v.name for v in variables],  # for field automation macros
         )
 
-    def _build_scoreboard_model(self) -> ScoreboardModel:
-        # Scoreboard zvyčajne potrebuje počúvať všetkých monitorov
-        # Zistíme, koľko agentov má monitor
-        exports = []
-        for comp in self.loader.uvm.components:
-            if ComponentType.MONITOR in comp.subcomponents:
-                exports.append(f"{comp.name}_export")
+    def _resolve_interface_ports(
+        self, port_names: list[str], dut_port_map: dict[str, Port], dut_group_map: dict[str, list[str]]
+    ) -> list[Port]:
+        """Expand group names and resolve port name strings to Port objects.
 
+        Resolution order per entry:
+        1. Group name → expands to all ports in that group
+        2. Port name  → resolves directly to that Port
+        3. Unknown    → warning, skipped
+
+        Duplicates are deduplicated while preserving order.
+        Clock and reset ports are excluded — they are handled separately
+        via InterfaceModel.clock / .reset.
+        """
+        seen: set[str] = set()
+        resolved: list[Port] = []
+
+        for entry in port_names:
+            candidates: list[str] = dut_group_map.get(entry, [entry])
+            for port_name in candidates:
+                if port_name in seen:
+                    continue
+                seen.add(port_name)
+                port = dut_port_map.get(port_name)
+                if port is None:
+                    logger.warning(f"Interface port '{port_name}' not found in DUT — skipping.")
+                    continue
+                # Resolve width to SV range string
+                resolved.append(port.model_copy(update={"width": self._get_range_from_port(port)}))
+
+        return resolved
+
+    def _build_interface_models(self):
+        dut_port_map: dict[str, Port] = {p.name: p for p in self.loader.dut.ports}
+        dut_group_map: dict[str, list[Port]] = {}
+        for port in self.loader.dut.ports:
+            if port.group:
+                dut_group_map.setdefault(port.group, []).append(port.name)
+
+        clk_ports = self.loader.dut.get_clock_ports()
+        rst_ports = self.loader.dut.get_reset_ports()
+
+        interface_models: dict[str, InterfaceModel] = {}
+        for iface_dc in self.loader.uvm.interfaces:
+            resolved_ports = self._resolve_interface_ports(iface_dc.ports, dut_port_map, dut_group_map)
+            interface_models[iface_dc.name] = InterfaceModel(
+                name=iface_dc.name,
+                ports=resolved_ports,
+                clock=clk_ports[0] if clk_ports else None,
+                reset=rst_ports[0] if rst_ports else None,
+            )
+        return interface_models
+
+    def _build_scoreboard_model(self, agents: list[AgentModel]) -> ScoreboardModel:
+        """Build scoreboard from agents that have a monitor."""
+        exports = [f"{agent.name}_export" for agent in agents if agent.has(ComponentType.MONITOR)]
         return ScoreboardModel(
             name=f"{self.loader.dut.dut_info.name}_scoreboard",
             transaction_type=self.loader.uvm.transaction_name,
@@ -166,6 +172,72 @@ class ModelBuilder:
             )
             seq_models.append(model)
         return seq_models
+
+    def _build_reference_model(self, agents: list[AgentModel]) -> ReferenceModelModel | None:
+        """Build and validate the reference model from config."""
+        rm_cfg = self.loader.uvm.reference_model
+        if rm_cfg is None:
+            return None
+
+        agent_names = {agent.name for agent in agents}
+        valid_components = agent_names | {"reference_model", "scoreboard"}
+
+        connections = self._resolve_connections(rm_cfg.connects, valid_components)
+        # TODO: are class name and transaction needed ?
+        return ReferenceModelModel(
+            class_name=f"{self.loader.dut.dut_info.name}_reference_model",
+            transaction_type=self.loader.uvm.transaction_name,
+            strategy=rm_cfg.strategy,
+            implementation=rm_cfg.implementation.type,
+            dpi_function=rm_cfg.implementation.function,
+            dpi_header=rm_cfg.implementation.header,
+            connections=connections,
+        )
+
+    def _resolve_connections(self, connects: list[Connection], valid_components: set[str]) -> list[ResolvedConnection]:
+        """Parse and validate endpoint strings into ResolvedConnection objects."""
+        _PORT_ALIASES: dict[str, str] = {
+            "driver.ap": "m_driver.ap",
+            "monitor.ap": "m_monitor.analysis_port",
+            "monitor.analysis_port": "m_monitor.analysis_port",
+        }
+
+        resolved = []
+        for conn in connects:
+            from_comp, from_port = self._parse_endpoint(conn.from_endpoint, valid_components, _PORT_ALIASES)
+            to_comp, to_port = self._parse_endpoint(conn.to_endpoint, valid_components, _PORT_ALIASES)
+            resolved.append(
+                ResolvedConnection(
+                    from_component=from_comp,
+                    from_port=from_port,
+                    to_component=to_comp,
+                    to_port=to_port,
+                )
+            )
+        return resolved
+
+    def _parse_endpoint(
+        self, endpoint: str, valid_components: set[str], port_aliases: dict[str, str]
+    ) -> tuple[str, str]:
+        """Split 'component.rest' and resolve port aliases.
+
+        Returns (component_name, port_expression).
+        Warns if component is unknown.
+        """
+        parts = endpoint.split(".", 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid connection endpoint '{endpoint}': expected '<component>.<port>' format.")
+        component, port_expr = parts[0], parts[1]
+
+        if component not in valid_components:
+            logger.warning(
+                f"Connection endpoint '{endpoint}' references unknown component "
+                f"'{component}' — known: {sorted(valid_components)}"
+            )
+
+        # Resolve alias if present, otherwise pass through as-is
+        resolved_port = port_aliases.get(port_expr, port_expr)
+        return component, resolved_port
 
     def _get_sv_type_from_port(self, port) -> str:
         """Convert a DUT port definition into a SystemVerilog type string."""

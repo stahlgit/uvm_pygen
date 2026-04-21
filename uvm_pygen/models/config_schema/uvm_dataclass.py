@@ -8,16 +8,15 @@ from pydantic.functional_validators import model_validator
 from uvm_pygen.constants.uvm_enum import (
     AgentMode,
     ComponentType,
-    Direction,
     ReferenceModelImplEnum,
     ReferenceModelStrategy,
 )
 
 
-class Component(BaseModel):
-    """UVM component definition.
+class InterfaceDeclaration(BaseModel):
+    """Interface definition.
 
-    Top-level YAML key: ``environment`` → ``components``
+    Top-level YAML key: ``environment`` → ``interfaces``
     The owning key is ``environment`` (required — its presence identifies a UVM config).
     """
 
@@ -26,27 +25,26 @@ class Component(BaseModel):
     )
 
     name: str
-    type: ComponentType
-    interface: str | None = None
-    direction: Direction | None = None
-    mode: AgentMode | None = None  # e.g., "active", "passive"
+    ports: list[
+        str
+    ]  # TODO: validate that correct port names are used here (IN ModelBuilder) - also mix of names and groups
 
-    # Typed as dict[str, dict] — keys are ComponentType string values
-    # e.g., {"driver": {"enabled": true}, "sequencer": {"enabled": true}}
-    subcomponents: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
-    inputs: list[str] | None = None
-    comparison_method: str | None = None
-    input_from: str | None = None
-    behavior: str | dict | None = None
+class AgentConfig(BaseModel):
+    """Agent-specific configuration.
 
-    @field_validator("subcomponents", mode="before")
-    @classmethod
-    def normalise_subcomponents(cls, v: Any) -> dict[str, dict[str, Any]]:
-        """Ensure every subcomponent entry is a dict, never None."""
-        if not isinstance(v, dict):
-            return {}
-        return {k: (val if isinstance(val, dict) else {}) for k, val in v.items()}
+    Top-level YAML key: ``environment`` → ``agents``
+    The owning key is ``environment`` (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "environment", "required": True},
+    )
+
+    name: str
+    mode: AgentMode
+    interface: str  # validated in ModelBuilder to ensure it matches an interface declaration
+    components: list[ComponentType]
 
 
 class TransactionField(BaseModel):
@@ -129,6 +127,8 @@ class Test(BaseModel):
 
 
 class ReferenceModelImplementation(BaseModel):
+    """Reference model implementation details."""
+
     model_config = ConfigDict(frozen=True)
 
     type: ReferenceModelImplEnum = ReferenceModelImplEnum.SV_CLASS
@@ -146,6 +146,14 @@ class ReferenceModelImplementation(BaseModel):
         return self
 
 
+class Connection(BaseModel):
+    """Connection between DUT and reference model endpoints."""
+
+    model_config = ConfigDict(frozen=True)
+    from_endpoint: str = Field(alias="from")
+    to_endpoint: str = Field(alias="to")
+
+
 class ReferenceModelConfig(BaseModel):
     """Reference model configuration.
 
@@ -159,6 +167,7 @@ class ReferenceModelConfig(BaseModel):
 
     strategy: ReferenceModelStrategy = ReferenceModelStrategy.NO_REFERENCE_MODEL
     implementation: ReferenceModelImplementation = ReferenceModelImplementation()
+    connects: list[Connection] = []
 
     @field_validator("implementation", mode="before")
     @classmethod
@@ -181,7 +190,6 @@ class VerificationInfo(BaseModel):
 
     project_name: str = "uvm_project"
     testbench_name: str = "tb_top"
-    uvm_version: str = "1.2"
 
 
 class SimulationConfig(BaseModel):

@@ -34,8 +34,8 @@ class FileManager:
 
         file_path = target_dir / filename
 
-        # Path in cache (mirror structure)
-        cache_path = self.cache_dir / target_dir.relative_to(self.output_dir) / filename
+        # Path in cache (mirror structure, namespaced under output_dir)
+        cache_path = self.cache_dir / target_dir / filename
         self._create_dir(cache_path.parent)
 
         # Read local (existing file)

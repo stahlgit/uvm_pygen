@@ -28,8 +28,11 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
     Port,
 )
 from uvm_pygen.models.config_schema.uvm_dataclass import (
-    Component,
+    AgentConfig,
+    Connection,
     Coverpoint,
+    InterfaceDeclaration,
+    ReferenceModelImplementation,
     Sequence,
     Test,
     TransactionField,
@@ -64,11 +67,14 @@ _ALL_MODELS: tuple[type[BaseModel], ...] = (
     Port,
     Constraints,
     # UVM section
-    Component,
+    InterfaceDeclaration,
+    AgentConfig,
     TransactionField,
     Sequence,
     Coverpoint,
     Test,
+    ReferenceModelImplementation,
+    Connection,
     VerificationInfo,
 )
 
@@ -130,10 +136,7 @@ class ConfigLayout:
         Each group contains all accepted forms of the key; at least one must
         be present in the YAML for the requirement to be satisfied.
         """
-        return tuple(
-            YAML_KEY_ALIAS_GROUPS.get(key, frozenset({key}))
-            for key in raw_keys
-        )
+        return tuple(YAML_KEY_ALIAS_GROUPS.get(key, frozenset({key})) for key in raw_keys)
 
 
 # Module-level singleton — imported by ConfigResolver and anywhere else that needs to reason about the YAML layout without touching raw strings.

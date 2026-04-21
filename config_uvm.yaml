@@ -6,7 +6,6 @@ verification:
   project_name: "ALU Functional Verification"
   dut_config: "config_dut.yaml"  # Reference to DUT config
   testbench_name: "new_test"
-  uvm_version: "1.2"
   
 # ============================================================================
 # UVM Environment Structure

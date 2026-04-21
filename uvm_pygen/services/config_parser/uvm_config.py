@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import override
 
-import yaml
 from pydantic import ValidationError
 
-from uvm_pygen.constants.config_alliases import ENV_BLOCK_ALIASES, TRANSACTION_ALIASES
+from uvm_pygen.constants.config_alliases import (
+    COMPONENT_ALIASES,
+    ENV_BLOCK_ALIASES,
+    REFERENCE_MODEL_ALIASES,
+    TRANSACTION_ALIASES,
+)
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType
 from uvm_pygen.models.config_schema.uvm_dataclass import Component, ReferenceModelConfig, Sequence, TransactionField
+from uvm_pygen.services.config_parser.base_config import BaseConfiguration
 
 
-class UVMConfiguration:
+class UVMConfiguration(BaseConfiguration):
     """UVM Configuration - Verification Environment.
 
     Pydantic models validate individual components/sequences on construction;
@@ -20,40 +25,15 @@ class UVMConfiguration:
     presence, sequence parent references, transaction name coherence).
     """
 
-    def __init__(self, config_path: str | Path) -> None:
-        """Initialize UVM configuration from YAML file."""
-        self.config_path = Path(config_path)
-        self._raw_config: dict = {}
+    @override
+    def _init_extra_state(self) -> None:
+        """Initialize subclass-specific instance state before _parse() is called."""
         self.interface_list: list[str] = []
-        self._load()
-        self._parse()
-
-    @classmethod
-    def from_dict(cls, raw: dict, source_label: str = "<in-memory>") -> UVMConfiguration:
-        """Construct a UVMConfiguration from an already-loaded dict.
-
-        This is used when the config comes from a unified YAML file that has
-        already been read and split by ``config_resolver.split_unified_config``.
-
-        Parameters
-        ----------
-        raw:
-            Dict with the same structure as a UVM YAML file (``verification``,
-            ``environment``, ``transactions``, ``sequences``, … keys at top level).
-        source_label:
-            Human-readable label used in error messages (e.g. the unified file path).
-        """
-        instance = cls.__new__(cls)
-        instance.config_path = Path(source_label)
-        instance._raw_config = raw
-        instance.interface_list = []
-        instance._parse()
-        return instance
 
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
-
+    @override
     def validate(self) -> list[str]:
         """Validate configuration consistency.
 
@@ -76,11 +56,7 @@ class UVMConfiguration:
     # Private — loading & parsing
     # -------------------------------------------------------------------------
 
-    def _load(self) -> None:
-        """Load raw YAML into _raw_config."""
-        with open(self.config_path) as f:
-            self._raw_config = yaml.safe_load(f)
-
+    @override
     def _parse(self) -> None:
         """Parse raw config dict into Pydantic model instances.
 
@@ -96,11 +72,11 @@ class UVMConfiguration:
         self.uvm_version: str = verif.get("uvm_version", "1.2")
 
         # Environment
-        env = next((self._raw_config[k] for k in ENV_BLOCK_ALIASES if k in self._raw_config), {})
+        env = self._get_aliased(self._raw_config, ENV_BLOCK_ALIASES, {})
         self.env_name: str = env.get("name", "env")
 
         # Reference model
-        rm_raw = env.get("reference_model", None)
+        rm_raw = self._get_aliased(env, REFERENCE_MODEL_ALIASES, None)
         if rm_raw is None:
             self.reference_model = None  # → NO_RM, nie ReferenceModelConfig()
         else:
@@ -109,7 +85,8 @@ class UVMConfiguration:
         # self.strategy: ReferenceModelConfig = ReferenceModelConfig(**env.get("reference_model", {}))
 
         self.components: list[Component] = []
-        for raw_comp in env.get("components", []):
+        comp_raw = self._get_aliased(env, COMPONENT_ALIASES, [])
+        for raw_comp in comp_raw:
             try:
                 self.components.append(Component(**raw_comp))
             except ValidationError as exc:
@@ -117,7 +94,7 @@ class UVMConfiguration:
                 raise ValueError(f"Component '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Transaction
-        trans = next((self._raw_config[k] for k in TRANSACTION_ALIASES if k in self._raw_config), {})
+        trans = self._get_aliased(self._raw_config, TRANSACTION_ALIASES, {})
         self.transaction_name: str = trans.get("name", "Transaction")
         self.auto_generate_transaction: bool = trans.get("auto_generate_from_dut", False)
 

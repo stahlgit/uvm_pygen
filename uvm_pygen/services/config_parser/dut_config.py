@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
-from typing import Any
+from typing import Any, override
 
-import yaml
 from pydantic import ValidationError
 
 from uvm_pygen.constants.config_alliases import ENUM_ALIASES, PARAMETER_ALIASES
@@ -17,9 +15,10 @@ from uvm_pygen.models.config_schema.dut_dataclass import (
     Parameter,
     Port,
 )
+from uvm_pygen.services.config_parser.base_config import BaseConfiguration
 
 
-class DUTConfiguration:
+class DUTConfiguration(BaseConfiguration):
     """DUT Configuration Model - Single source of truth for DUT settings.
 
     Responsible for loading, parsing, and validating the DUT YAML config.
@@ -28,44 +27,11 @@ class DUTConfiguration:
     parsed state (enum resolution, etc.).
     """
 
-    def __init__(self, config_path: str | Path) -> None:
-        """Initialize DUT configuration from YAML file.
-
-        Args:
-            config_path: Path to the DUT YAML configuration file.
-        """
-        self.config_path = Path(config_path)
-        self._raw_config: dict = {}
-
-        self._load()
-        self._parse()
-
-    @classmethod
-    def from_dict(cls, raw: dict, source_label: str = "<in-memory>") -> DUTConfiguration:
-        """Construct a DUTConfiguration from an already-loaded dict.
-
-        This is used when the config comes from a unified YAML file that has
-        already been read and split by ``config_resolver.split_unified_config``.
-
-        Args:
-            raw: Dict with the same structure as a DUT YAML file (``dut``, ``parameters``,
-                ``enums``, ``ports``, … keys at the top level).
-            source_label: Human-readable label used in error messages (e.g. the unified file path).
-
-        Returns:
-            DUTConfiguration: A new instance initialized from the provided dict.
-        """
-        instance = cls.__new__(cls)
-        instance.config_path = Path(source_label)
-        instance._raw_config = raw
-
-        instance._parse()
-        return instance
-
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
 
+    @override
     def validate(self) -> list[str]:
         """Validate configuration consistency.
 
@@ -168,12 +134,7 @@ class DUTConfiguration:
     # -------------------------------------------------------------------------
     # Private — loading & parsing
     # -------------------------------------------------------------------------
-
-    def _load(self) -> None:
-        """Load raw YAML into _raw_config."""
-        with open(self.config_path) as f:
-            self._raw_config = yaml.safe_load(f)
-
+    @override
     def _parse(self) -> None:
         """Parse raw config dict into Pydantic model instances.
 
@@ -201,9 +162,7 @@ class DUTConfiguration:
         # Enums
         self.enums: dict[str, EnumType] = {}
         # for enum_name, enum_data in self._raw_config.get("enums", {}).items():
-        for enum_name, enum_data in next(
-            (self._raw_config[k] for k in ENUM_ALIASES if k in self._raw_config), {}
-        ).items():
+        for enum_name, enum_data in self._get_aliased(self._raw_config, ENUM_ALIASES, {}).items():
             try:
                 values = [EnumValue(**v) for v in enum_data["values"]]
                 self.enums[enum_name] = EnumType(name=enum_name, type=enum_data["type"], values=values)

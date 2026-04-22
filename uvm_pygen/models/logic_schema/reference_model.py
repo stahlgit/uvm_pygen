@@ -14,6 +14,7 @@ class ResolvedConnection(BaseModel):
     from_port: str
     to_component: str
     to_port: str
+    transaction: str | None = None
 
     def _sv_handle(self, component: str) -> str:
         """Map a logical component name to its SV environment handle."""
@@ -40,7 +41,7 @@ class ReferenceModelModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     class_name: str  # e.g. "alu_reference_model"
-    transaction_type: str
+    transaction_type: str  # TODO: remove since transaction type is now per-connection, not global to the RM
     strategy: ReferenceModelStrategy
     implementation: ReferenceModelImplEnum
     dpi_function: str | None = None

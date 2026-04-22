@@ -107,15 +107,19 @@ env:
     connects:
       - from: write_agent.driver.ap        # analysis port on driver
         to: reference_model.analysis_export
+        transaction: WriteTransaction 
     
       - from: write_agent.monitor.ap
         to: reference_model.analysis_export  # RM can have multiple exports
+        transaction: WriteTransaction
     
       - from: read_agent.monitor.ap
         to: scoreboard.actual_export
+        transaction: ReadTransaction
     
       - from: reference_model.ap_expected
         to: scoreboard.expected_export
+        transaction: ReadTransaction
   
   interfaces:
     - name: write_if
@@ -141,10 +145,13 @@ env:
 
 transactions:
   - name: AluTransaction
-    base_class: uvm_sequence_item
     field_overrides:
-      - { name: rst,  randomize: false, default: 0 }
-      - { name: act,  randomize: false, default: 1 }
+      - name: rst
+        randomize: false
+        default: 0
+      - act:
+        randomize: true
+        default: 1
 
   - name: WriteTransaction
     base_class: AluTransaction       # inherits from the global one

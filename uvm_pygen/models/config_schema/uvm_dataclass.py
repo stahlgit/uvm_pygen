@@ -25,9 +25,7 @@ class InterfaceDeclaration(BaseModel):
     )
 
     name: str
-    ports: list[
-        str
-    ]  # TODO: validate that correct port names are used here (IN ModelBuilder) - also mix of names and groups
+    ports: list[str]
 
 
 class AgentConfig(BaseModel):
@@ -61,6 +59,21 @@ class TransactionField(BaseModel):
     name: str
     randomize: bool
     default: Any = None
+
+
+class TransactionConfig(BaseModel):
+    """Transaction configuration.
+
+    Top-level YAML key: ``transactions``  (required — its presence identifies a UVM config).
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={"yaml_section": "uvm", "yaml_key": "transactions", "required": True},
+    )
+
+    name: str
+    base_class: str = "uvm_sequence_item"
+    field_overrides: list[TransactionField] = []
 
 
 class Sequence(BaseModel):
@@ -153,6 +166,7 @@ class Connection(BaseModel):
     model_config = ConfigDict(frozen=True)
     from_endpoint: str = Field(alias="from")
     to_endpoint: str = Field(alias="to")
+    transaction: str | None = None
 
 
 class ReferenceModelConfig(BaseModel):

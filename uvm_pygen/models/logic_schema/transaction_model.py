@@ -76,6 +76,7 @@ class TransactionModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     class_name: NonEmptyStr
+    base_class: str = "uvm_sequence_item"
     variables: list[SvVariable] = Field(default_factory=list)
     constraints: list[SvConstraint] = Field(default_factory=list)
     macros: list[str] = Field(default_factory=list)  # e.g. `uvm_object_utils_begin` fields

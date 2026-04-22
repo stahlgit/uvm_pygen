@@ -42,7 +42,7 @@ class EnvModel(BaseModel):
     interfaces: list[InterfaceModel] = Field(default_factory=list)
     scoreboard: ScoreboardModel | None = None
     sequences: list[SequenceModel] = Field(default_factory=list)
-    transaction: TransactionModel
+    transactions: list[TransactionModel] = Field(default_factory=list)
 
     parameters: list[Parameter] = Field(default_factory=list)
     enums: dict[str, EnumType] = Field(default_factory=dict)

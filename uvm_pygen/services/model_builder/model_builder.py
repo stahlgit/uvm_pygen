@@ -2,7 +2,7 @@
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
 from uvm_pygen.models.config_schema.dut_dataclass import Port
-from uvm_pygen.models.config_schema.uvm_dataclass import Connection
+from uvm_pygen.models.config_schema.uvm_dataclass import Connection, ReferenceModelConfig
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
 from uvm_pygen.models.logic_schema.reference_model import ReferenceModelModel, ResolvedConnection
 from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
@@ -30,6 +30,9 @@ class ModelBuilder:
         ### INTERFACE
         interface_models = self._build_interface_models()
 
+        ### TRANSACTIONS
+        transactions = self._build_transactions(interface_models)
+
         ### AGENTS
         agents = []
         for agent in self.loader.uvm.agents:
@@ -42,6 +45,7 @@ class ModelBuilder:
                 mode=AgentMode(agent.mode),
                 interface_instance=iface_model,
                 parts=frozenset(agent.components),
+                transaction=agent.transaction,
             )
             agents.append(agent_model)
 
@@ -50,49 +54,84 @@ class ModelBuilder:
             testbench_name=self.loader.uvm.testbench_name,
             agents=agents,
             interfaces=list(interface_models.values()),
-            ### Build scoreboard
             scoreboard=self._build_scoreboard_model(agents),
-            transaction=self._build_transaction_model(),
-            ### build sequences
+            transactions=transactions,
             sequences=self._build_sequences(),
             parameters=self.loader.dut.parameters,
             enums=self.loader.dut.enums,
             dut_instance_name=self.loader.dut.dut_info.name,
             dut_entity_name=self.loader.dut.dut_info.entity_name,
-            reference_model=self._build_reference_model(agents),
+            reference_model=self._build_reference_model(agents, transactions),
         )
 
-    def _build_transaction_model(self) -> TransactionModel:
-        """Vytvorí model transakcie spojením DUT portov a UVM nastavení."""
+    def _build_variables_from_ports(self, ports: list, field_overrides: list) -> list[SvVariable]:
+        """Build SvVariable list from interface ports, applying field overrides."""
+        # Build override lookup by port name (lowercase for case-insensitive match)
+        override_map = {fo.name.lower(): fo for fo in field_overrides}
+
         variables = []
+        for port in ports:
+            if port.is_clock or port.is_reset:
+                continue  # clock/reset handled separately in interface, not in transaction
 
-        target_ports = self.loader.dut.get_signal_ports()
-
-        for port in target_ports:
-            # A. Rozhodni o Type (Logic vector vs Enum)
             sv_type = self._get_sv_type_from_port(port)
+            override = override_map.get(port.name.lower())
 
-            # B. Rozhodni o Randomizácii (Check overrides)
-            is_rand = True
-            default_val = None
+            is_rand = override.randomize if override else True
+            default_val = str(override.default) if override and override.default is not None else None
 
-            var = SvVariable(
-                name=port.name.lower(),  # SV convention : lower
-                sv_type=sv_type,
-                is_rand=is_rand,
-                default_value=default_val,
-                comment=port.description,
-                direction=Direction(port.direction) if port.direction else None,
-                is_enum=bool(port.enum_def),
+            variables.append(
+                SvVariable(
+                    name=port.name.lower(),
+                    sv_type=sv_type,
+                    is_rand=is_rand,
+                    default_value=default_val,
+                    comment=port.description,
+                    direction=Direction(port.direction) if port.direction else None,
+                    is_enum=bool(port.enum_def),
+                )
             )
-            variables.append(var)
 
-        return TransactionModel(
-            class_name=self.loader.uvm.transaction_name,
-            variables=variables,
-            constraints=[],
-            macros=[v.name for v in variables],  # for field automation macros
-        )
+        return variables
+
+    def _build_transactions(self, interface_models: dict[str, InterfaceModel]) -> list[TransactionModel]:
+        """Build transaction models from UVM config, resolving port types from interfaces."""
+        trans_to_iface: dict[str, str] = {}
+        for agent_cfg in self.loader.uvm.agents:
+            if agent_cfg.transaction:
+                trans_to_iface[agent_cfg.transaction] = agent_cfg.interface
+
+        # Fallback interface — first agent's interface, for single-transaction configs
+        fallback_iface_name: str | None = self.loader.uvm.agents[0].interface if self.loader.uvm.agents else None
+
+        transaction_models = []
+
+        for trans_cfg in self.loader.uvm.transactions:
+            iface_name = trans_to_iface.get(trans_cfg.name, fallback_iface_name)
+
+            if iface_name is None:
+                logger.warning(f"Transaction '{trans_cfg.name}' has no interface — generating empty transaction.")
+                ports = []
+            else:
+                iface_model = interface_models.get(iface_name)
+                if iface_model is None:
+                    logger.warning(
+                        f"Transaction '{trans_cfg.name}' references unknown interface '{iface_name}' — generating empty transaction."
+                    )
+                    ports = []
+                else:
+                    ports = iface_model.ports
+
+            variables = self._build_variables_from_ports(ports, trans_cfg.field_overrides)
+            transaction_models.append(
+                TransactionModel(
+                    class_name=trans_cfg.name,
+                    base_class=trans_cfg.base_class,
+                    variables=variables,
+                    constraints=[],
+                )
+            )
+        return transaction_models
 
     def _resolve_interface_ports(
         self, port_names: list[str], dut_port_map: dict[str, Port], dut_group_map: dict[str, list[str]]
@@ -173,16 +212,20 @@ class ModelBuilder:
             seq_models.append(model)
         return seq_models
 
-    def _build_reference_model(self, agents: list[AgentModel]) -> ReferenceModelModel | None:
+    def _build_reference_model(
+        self, agents: list[AgentModel], transactions: list[TransactionModel]
+    ) -> ReferenceModelModel | None:
         """Build and validate the reference model from config."""
-        rm_cfg = self.loader.uvm.reference_model
+        rm_cfg: None | ReferenceModelConfig = self.loader.uvm.reference_model
         if rm_cfg is None:
             return None
 
         agent_names = {agent.name for agent in agents}
         valid_components = agent_names | {"reference_model", "scoreboard"}
 
-        connections = self._resolve_connections(rm_cfg.connects, valid_components)
+        valid_transaction_names = {t.class_name for t in transactions}
+
+        connections = self._resolve_connections(rm_cfg.connects, valid_components, valid_transaction_names)
         # TODO: are class name and transaction needed ?
         return ReferenceModelModel(
             class_name=f"{self.loader.dut.dut_info.name}_reference_model",
@@ -194,7 +237,9 @@ class ModelBuilder:
             connections=connections,
         )
 
-    def _resolve_connections(self, connects: list[Connection], valid_components: set[str]) -> list[ResolvedConnection]:
+    def _resolve_connections(
+        self, connects: list[Connection], valid_components: set[str], valid_transaction_names: set[str]
+    ) -> list[ResolvedConnection]:
         """Parse and validate endpoint strings into ResolvedConnection objects."""
         _PORT_ALIASES: dict[str, str] = {
             "driver.ap": "m_driver.ap",
@@ -206,12 +251,21 @@ class ModelBuilder:
         for conn in connects:
             from_comp, from_port = self._parse_endpoint(conn.from_endpoint, valid_components, _PORT_ALIASES)
             to_comp, to_port = self._parse_endpoint(conn.to_endpoint, valid_components, _PORT_ALIASES)
+            if conn.transaction and conn.transaction in valid_transaction_names:
+                transaction = conn.transaction
+            else:
+                if conn.transaction:
+                    logger.warning(
+                        f"Connection transaction '{conn.transaction}' is not a valid transaction name — ignoring."
+                    )
+                transaction = None
             resolved.append(
                 ResolvedConnection(
                     from_component=from_comp,
                     from_port=from_port,
                     to_component=to_comp,
                     to_port=to_port,
+                    transaction=transaction,
                 )
             )
         return resolved

@@ -19,7 +19,7 @@ from uvm_pygen.models.config_schema.uvm_dataclass import (
     InterfaceDeclaration,
     ReferenceModelConfig,
     Sequence,
-    TransactionField,
+    TransactionConfig,
 )
 from uvm_pygen.services.config_parser.base_config import BaseConfiguration
 
@@ -109,17 +109,15 @@ class UVMConfiguration(BaseConfiguration):
                 raise ValueError(f"Agent '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Transaction
-        trans = self._get_aliased(self._raw_config, TRANSACTION_ALIASES, {})
-        self.transaction_name: str = trans.get("name", "Transaction")
-        self.auto_generate_transaction: bool = trans.get("auto_generate_from_dut", False)
+        raw_trans = self._get_aliased(self._raw_config, TRANSACTION_ALIASES, {})
+        self.transactions: list[TransactionConfig] = []
 
-        self.field_overrides: list[TransactionField] = []
-        for raw_field in trans.get("field_overrides", []):
+        for trans in raw_trans:
             try:
-                self.field_overrides.append(TransactionField(**raw_field))
+                self.transactions.append(TransactionConfig(**trans))
             except ValidationError as exc:
-                name = raw_field.get("name", UNKNOWN)
-                raise ValueError(f"TransactionField '{name}' validation failed in '{source}':\n{exc}") from exc
+                name = raw_trans.get("name", UNKNOWN)
+                raise ValueError(f"Transaction '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Sequences
         self.sequences: list[Sequence] = []

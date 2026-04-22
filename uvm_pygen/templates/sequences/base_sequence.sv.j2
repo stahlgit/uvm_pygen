@@ -10,7 +10,7 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
     typedef {{ trans_type }} seq_item_t;
 
     {% for port in ports %}
-    {% if port.direction == "input" %}
+    {% if port.direction == "input" and not port.is_clock and not port.is_reset %}
     {% if port.enum_name %}
     rand {{ port.enum_name }} default_{{ port.name.lower() }};
     {% else %}
@@ -36,7 +36,7 @@ class base_sequence extends uvm_sequence #({{ trans_type }});
 
         if (!req.randomize() with {
             {% for port in ports %}
-            {% if port.direction == "input" %}
+            {% if port.direction == "input" and not port.is_clock and not port.is_reset %}
             {{ port.name.lower() }} == local::default_{{ port.name.lower() }};
             {% endif %}
             {% endfor %}

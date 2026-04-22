@@ -64,7 +64,7 @@ class SequencesUnit(GenerationUnit):
                 "ports": ports,
                 "seq_name": "direct_sequence",
                 "body": "// User-defined body",
-                "name": agent.name,
+                "name": model.dut_instance_name,
                 "seqs": self._SEQ_NAMES,
                 "num_transaction": self.num_transactions,
             }

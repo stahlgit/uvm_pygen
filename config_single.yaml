@@ -88,7 +88,7 @@ ports:
 # ============================================================================
 verification:
   project_name: "ALU Functional Verification"
-  testbench_name: "reference_testbench"
+  testbench_name: "single_testbench"
 
 env:
   name: alu_env
@@ -105,19 +105,19 @@ env:
     #   header: "alu_ref.h"         # C header — required ak type == dpi_extern
 
     connects:
-      - from: write_agent.driver.ap        # analysis port on driver
+      - from: agent.driver.ap              # Send driven inputs to the reference model
         to: reference_model.analysis_export
         transaction: AluTransaction 
     
-      - from: write_agent.monitor.ap
-        to: reference_model.analysis_export  # RM can have multiple exports
+      - from: agent.monitor.ap             # Send monitored inputs to the reference model
+        to: reference_model.analysis_export  
         transaction: AluTransaction
     
-      - from: read_agent.monitor.ap
+      - from: agent.monitor.ap             # Send monitored outputs to the scoreboard (Actuals)
         to: scoreboard.actual_export
         transaction: AluTransaction
     
-      - from: reference_model.ap_expected
+      - from: reference_model.ap_expected  # Send computed expecteds to the scoreboard (Expecteds)
         to: scoreboard.expected_export
         transaction: AluTransaction
   

@@ -245,6 +245,15 @@ class ModelBuilder:
                 covered_agents.add(conn.from_component)
 
         # --- Source 2: monitor agents not already covered ---
+        # Skip entirely if the user wired up scoreboard connections explicitly (source 1 produced exports).
+        # Fallback is only for configs that have no explicit scoreboard connections at all.
+        if sb_exports:
+            return ScoreboardModel(
+                name=f"{self.loader.dut.dut_info.name}_scoreboard",
+                exports=sb_exports,
+                has_predictor=True,
+            )
+
         for agent in agents:
             if not agent.has(ComponentType.MONITOR):
                 continue
@@ -342,6 +351,18 @@ class ModelBuilder:
         for conn in connects:
             from_comp, from_port = self._parse_endpoint(conn.from_endpoint, valid_components, _PORT_ALIASES)
             to_comp, to_port = self._parse_endpoint(conn.to_endpoint, valid_components, _PORT_ALIASES)
+
+            if from_comp not in valid_components:
+                raise ValueError(
+                    f"Config Error: Connection source '{from_comp}' in '{conn.from_endpoint}' "
+                    f"does not exist. Valid components: {', '.join(valid_components)}"
+                )
+            if to_comp not in valid_components:
+                raise ValueError(
+                    f"Config Error: Connection destination '{to_comp}' in '{conn.to_endpoint}' "
+                    f"does not exist. Valid components: {', '.join(valid_components)}"
+                )
+
             if conn.transaction and conn.transaction in valid_transaction_names:
                 transaction = conn.transaction
             else:

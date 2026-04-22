@@ -121,12 +121,13 @@ env:
     - name: write_if
       ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM]
     - name: read_if
-      ports: ["Control Signals", RD_EN, RD_DATA, EMPTY]
+      ports: ["EX_ALU_VLD", "EX_ALU", "ALU_RDY"]
     
   agents:
     - name: write_agent
       mode: active
       interface: write_if
+      transaction: WriteTransaction
       components:
       - driver
       - sequencer
@@ -134,18 +135,26 @@ env:
     - name: read_agent
       mode: passive
       interface: read_if
+      transaction: ReadTransaction
       components:
       - monitor
 
 transactions:
-  name: AluTransaction
-  base_class: uvm_sequence_item
-  field_overrides:
-    - { name: rst,  randomize: false, default: 0 }
-    - { name: act,  randomize: false, default: 1 }
-    - { name: op,   randomize: true }
-    - { name: movi, randomize: true }
+  - name: AluTransaction
+    base_class: uvm_sequence_item
+    field_overrides:
+      - { name: rst,  randomize: false, default: 0 }
+      - { name: act,  randomize: false, default: 1 }
 
+  - name: WriteTransaction
+    base_class: AluTransaction       # inherits from the global one
+    field_overrides:
+      - { name: op,   randomize: true }
+      - { name: movi, randomize: true }
+
+  - name: ReadTransaction
+    base_class: uvm_sequence_item
+    field_overrides: []              # output-only ports, no randomization needed
 # sequences: []   # add sequences here when needed
 
 simulation:

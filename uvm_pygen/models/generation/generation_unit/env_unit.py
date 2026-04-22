@@ -17,7 +17,9 @@ class EnvUnit(GenerationUnit):
     """Generation unit for the environment."""
 
     key: str = "env"
-    deps: list[str] = field(default_factory=lambda: ["agents", "sequences"]) #TODO: add deps for reference model, trans pkg, scoreboard
+    deps: list[str] = field(
+        default_factory=lambda: ["agents", "sequences"]
+    )  # TODO: add deps for reference model, trans pkg, scoreboard
 
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(template="common/env.sv.j2", suffix="_env.sv", subdir="env"),
@@ -30,6 +32,12 @@ class EnvUnit(GenerationUnit):
     def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
         env_name = f"{model.testbench_name}_env"
 
+        if model.reference_model and not model.reference_model.connections:
+            logger.warning(
+                "⚠️  Reference model has no connections defined — connect_phase will be empty. "
+                "Add 'connects:' entries to your config or wire manually in the generated file."
+            )
+
         return {
             "env_name": env_name,
             "testbench_name": model.testbench_name,
@@ -38,9 +46,11 @@ class EnvUnit(GenerationUnit):
             "trans_type": reg.get_context("trans_type", self.key),
             "if_name": reg.get_context("if_name", self.key),
             "reference_model": reg.get_context("reference_model", self.key),
+            "reference_model_obj": model.reference_model,
             "scoreboard": reg.get_context("scoreboard", self.key),
             "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
             "ComponentType": ComponentType,  # for template use: {% if agent.has(ComponentType.DRIVER) %}
+            "interfaces": model.interfaces,
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:

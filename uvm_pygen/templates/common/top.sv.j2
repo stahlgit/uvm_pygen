@@ -16,18 +16,20 @@ module {{ testbench_name }}_top;
   logic {{ clock.name }};
   logic {{ reset.name }};
 
-  // Interface instance
-  {{ interface.name }} vif (
+  // Interface instances — one per declared interface
+  {% for iface in interfaces %}
+  {{ iface.name }} {{ iface.name }}_inst (
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }})
   );
+  {% endfor %}
 
-  // DUT instance
+  // DUT instance — ports wired to their respective interface instances
   {{ dut_entity_name }} dut (
     .{{ clock.name }}({{ clock.name }}),
     .{{ reset.name }}({{ reset.name }}),
-    {% for port in ports %}
-    .{{ port.name }}(vif.{{ port.name }}){% if not loop.last %},{% endif %}
+    {% for iface, port in all_ports %}
+    .{{ port.name }}({{ iface.name }}_inst.{{ port.name }}){{ "," if not loop.last }}
     {% endfor %}
   );
 
@@ -46,7 +48,9 @@ module {{ testbench_name }}_top;
 
   // UVM test start
   initial begin
-    uvm_resource_db #(virtual {{ interface.name }})::set("*", "vif", vif);
+    {% for iface in interfaces %}
+    uvm_resource_db #(virtual {{ iface.name }})::set("*", "{{ iface.name }}", {{ iface.name }}_inst);
+    {% endfor %}
     run_test();
   end
 

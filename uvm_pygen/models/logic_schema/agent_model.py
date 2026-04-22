@@ -20,6 +20,7 @@ class AgentModel(BaseModel):
     name: NonEmptyStr
     mode: AgentMode
     interface_instance: InterfaceModel
+    transaction: str | None = None
     parts: frozenset[ComponentType]  # frozenset: immutable, hashable, correct for a set of flags
 
     @field_validator("name")
@@ -39,3 +40,8 @@ class AgentModel(BaseModel):
     def has(self, part: ComponentType) -> bool:
         """Return True if this agent includes the given component type."""
         return part in self.parts
+
+    @property
+    def vif_key(self) -> str:
+        """Return the key to use for looking up the interface instance in the testbench model."""
+        return self.interface_instance.name

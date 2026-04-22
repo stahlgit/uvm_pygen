@@ -1,13 +1,11 @@
 """Concrete generation unit for interface generation."""
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, override
 
 from uvm_pygen.models.generation.file_spec import FileSpec
 from uvm_pygen.models.generation.generation_unit.generation_unit import GenerationUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
-from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.utils.logger import logger
 
 
@@ -26,30 +24,29 @@ class InterfaceUnit(GenerationUnit):
         ),
     ]
 
-    def _prefix(self, model: EnvModel) -> str:
-        return model.interfaces[0].name if model.interfaces else ""
+    @override
+    def run(self, reg: GenerationRegistry) -> None:
+        reg.assert_deps(self.deps, self.key)
+        model, renderer, writer = self._infra(reg)
 
-    def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
-        if not model.interfaces:
-            return {}
-        if_model = model.interfaces[0]
-        return {
-            "if_model": if_model,
-            "trans": model.transaction,
-            "trans_type": reg.get_context("trans_type", self.key),
-            "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
-            "package_name": reg.get_context("package_name", self.key),
-        }
-
-    def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:
         if not model.interfaces:
             logger.warning("⚠️  No interfaces defined – skipping interface generation.")
-            reg.register(self.key, if_name=None)
+            reg.register(self.key, if_name=None, interfaces=[])
             return
 
-        path = next(iter(written.values()), None)
-        reg.register(self.key, path=path, if_name=model.interfaces[0].name)
-        if not path:
-            logger.warning("InterfaceUnit: No file was written, cannot register src file.")
-            return
-        self._register_src_file(reg, path, model.testbench_name)
+        all_written = {}
+        for iface in model.interfaces:
+            context = {
+                "if_model": iface,
+                "trans": model.transaction,
+                "trans_type": reg.get_context("trans_type", self.key),
+                "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
+                "package_name": reg.get_context("package_name", self.key),
+            }
+            written = self._render_specs(context, reg, model, renderer, writer, iface.name)
+            all_written.update(written)
+
+        for path in all_written.values():
+            self._register_src_file(reg, path, model.testbench_name)
+
+        reg.register(self.key, if_name=model.interfaces[0].name, interfaces=model.interfaces)

@@ -40,17 +40,14 @@ class AgentsUnit(GenerationUnit):
             reg.register(self.key)
             return
 
-        if_name: str | None = reg.get_context("if_name", self.key)
-        trans_type: str = reg.get_context("trans_type", self.key)
-        package_name: str = reg.get_context("package_name", self.key)
-
         for agent in model.agents:
             context = {
                 "agent": agent,
-                "if_name": if_name,
-                "trans_type": trans_type,
+                "if_name": agent.interface_instance.name,  # per-agent from model
+                "vif_key": agent.interface_instance.name,  # resource_db lookup key
+                "trans_type": reg.get_context("trans_type", self.key),
                 "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
-                "package_name": package_name,
+                "package_name": reg.get_context("package_name", self.key),
                 "parts": agent.parts,
             }
             # Stamp each spec with the agent's subdir and its per-component guard.

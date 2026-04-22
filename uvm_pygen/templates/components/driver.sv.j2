@@ -31,7 +31,7 @@ class {{ agent.name }}_driver extends uvm_driver #({{ trans_type }});
         uvm_resource #(virtual {{ if_name }}) vif_res;
         super.build_phase(phase);
 
-        vif_res = uvm_resource_db #(virtual {{ if_name }})::get_by_name("*", "vif", 0);
+        vif_res = uvm_resource_db #(virtual {{ if_name }})::get_by_name("*", "{{ vif_key }}", 0);
         if (vif_res == null)
             `uvm_fatal("NOVIF", {"Virtual interface not found in resource_db for: ", get_full_name()})
         vif = vif_res.read(this);

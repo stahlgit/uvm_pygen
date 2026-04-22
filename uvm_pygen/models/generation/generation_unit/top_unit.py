@@ -29,16 +29,20 @@ class TopUnit(GenerationUnit):
     def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
         if not model.interfaces:
             return {}
-        iface = model.interfaces[0]
         return {
             "testbench_name": model.testbench_name,
             "dut_instance_name": model.dut_instance_name,
             "dut_entity_name": model.dut_entity_name,
-            "interface": iface,
+            "interfaces": model.interfaces,
             "agents": model.agents,
-            "clock": iface.clock,
-            "reset": iface.reset,
-            "ports": iface.ports,
+            "clock": model.interfaces[0].clock,
+            "reset": model.interfaces[0].reset,
+            "all_ports": [
+                (iface, port)
+                for iface in model.interfaces
+                for port in iface.ports
+                if not port.is_clock and not port.is_reset
+            ],
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:

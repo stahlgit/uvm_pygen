@@ -44,6 +44,7 @@ class AgentConfig(BaseModel):
     name: str
     mode: AgentMode
     interface: str  # validated in ModelBuilder to ensure it matches an interface declaration
+    transaction: str | None = None  # validated in ModelBuilder to ensure it matches a transaction declaration
     components: list[ComponentType]
 
 

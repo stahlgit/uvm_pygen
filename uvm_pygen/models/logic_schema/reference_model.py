@@ -15,6 +15,24 @@ class ResolvedConnection(BaseModel):
     to_component: str
     to_port: str
 
+    def _sv_handle(self, component: str) -> str:
+        """Map a logical component name to its SV environment handle."""
+        if component == "reference_model":
+            return "m_refmodel"
+        if component == "scoreboard":
+            return "m_scoreboard"
+        return f"m_{component}"
+
+    @property
+    def from_sv(self) -> str:
+        """Get the SV handle for the source component."""
+        return self._sv_handle(self.from_component)
+
+    @property
+    def to_sv(self) -> str:
+        """Get the SV handle for the destination component."""
+        return self._sv_handle(self.to_component)
+
 
 class ReferenceModelModel(BaseModel):
     """Reference model — resolved logic model for generation."""

@@ -3,11 +3,7 @@
 // Description: Generated Transaction Object
 //------------------------------------------------------------------------------
 
-`include "uvm_macros.svh"
-import uvm_pkg::*;
-import {{ package_name }}::*;
-
-class {{ trans.class_name }} extends uvm_sequence_item;
+class {{ trans.class_name }} extends {{ trans.base_class }};
 
     // Variables
     // Inputs

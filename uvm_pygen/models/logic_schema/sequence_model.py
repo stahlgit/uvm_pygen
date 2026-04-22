@@ -1,8 +1,7 @@
 """Model for UVM sequence generation."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
-from uvm_pygen.models.logic_schema.transaction_model import SvConstraint
 from uvm_pygen.models.utils.util_annotation import NonEmptyStr
 
 
@@ -16,8 +15,8 @@ class SequenceModel(BaseModel):
     Fields:
         name:             SystemVerilog class name for the sequence.
         base_class:       Parent class, e.g. "uvm_sequence" or "alu_base_sequence".
-        transaction_type: Type name of the transaction this sequence creates,
-                          e.g. "alu_transaction".
+        transaction_types: List of transaction type names this sequence creates,
+                           e.g. ["alu_transaction"].
         constraints:      SvConstraint objects to emit inside the sequence class.
         body_code:        Optional list of raw SV lines to emit inside body().
                           None means the template uses its default body implementation.
@@ -27,8 +26,8 @@ class SequenceModel(BaseModel):
 
     name: NonEmptyStr
     base_class: NonEmptyStr
-    transaction_type: NonEmptyStr
-    constraints: list[SvConstraint] = Field(default_factory=list)
+    transaction_types: list[NonEmptyStr]
+    # constraints: list[SvConstraint] = Field(default_factory=list)
     body_code: list[str] | None = None
 
     @property

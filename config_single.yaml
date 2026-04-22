@@ -107,40 +107,32 @@ env:
     connects:
       - from: write_agent.driver.ap        # analysis port on driver
         to: reference_model.analysis_export
-        transaction: WriteTransaction 
+        transaction: AluTransaction 
     
       - from: write_agent.monitor.ap
         to: reference_model.analysis_export  # RM can have multiple exports
-        transaction: WriteTransaction
+        transaction: AluTransaction
     
       - from: read_agent.monitor.ap
         to: scoreboard.actual_export
-        transaction: ReadTransaction
+        transaction: AluTransaction
     
       - from: reference_model.ap_expected
         to: scoreboard.expected_export
-        transaction: ReadTransaction
+        transaction: AluTransaction
   
   interfaces:
-    - name: write_if
-      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM]
-    - name: read_if
-      ports: ["EX_ALU_VLD", "EX_ALU", "ALU_RDY"]
+    - name: AluInterface
+      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM, EX_ALU_VLD, EX_ALU, ALU_RDY]
     
   agents:
-    - name: write_agent
+    - name: agent
       mode: active # 
-      interface: write_if
-      transaction: WriteTransaction
+      interface: AluInterface
+      transaction: AluTransaction
       components:
       - driver
       - sequencer
-      - monitor
-    - name: read_agent
-      mode: passive
-      interface: read_if
-      transaction: ReadTransaction
-      components:
       - monitor
 
 transactions:
@@ -152,17 +144,6 @@ transactions:
       - name: act
         randomize: true
         default: 1
-
-  - name: WriteTransaction
-    base_class: AluTransaction       # inherits from the global one
-    field_overrides:
-      - { name: op,   randomize: true }
-      - { name: movi, randomize: true }
-
-  - name: ReadTransaction
-    base_class: uvm_sequence_item
-    field_overrides: []              # output-only ports, no randomization needed
-# sequences: []   # add sequences here when needed
 
 simulation:
   compilation:

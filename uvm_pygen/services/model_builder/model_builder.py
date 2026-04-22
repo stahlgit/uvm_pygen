@@ -5,9 +5,9 @@ from uvm_pygen.models.config_schema.dut_dataclass import Port
 from uvm_pygen.models.config_schema.uvm_dataclass import Connection, ReferenceModelConfig
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
 from uvm_pygen.models.logic_schema.reference_model import ReferenceModelModel, ResolvedConnection
-from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardModel
+from uvm_pygen.models.logic_schema.scoreboard_model import ScoreboardExport, ScoreboardModel
 from uvm_pygen.models.logic_schema.sequence_model import SequenceModel
-from uvm_pygen.models.logic_schema.transaction_model import SvConstraint, SvVariable, TransactionModel
+from uvm_pygen.models.logic_schema.transaction_model import SvVariable, TransactionModel
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 from uvm_pygen.services.utils.logger import logger
 
@@ -22,10 +22,6 @@ class ModelBuilder:
     def build(self) -> EnvModel:
         """Constructs the complete Environment Model."""
         logger.info("Building Logic Models...")
-
-        """TODO: decide if there will be multiple interfaces, or just one per run.
-        If multiple, we need to map them from UVM config to DUT ports - filter ports by interface name.
-        """
 
         ### INTERFACE
         interface_models = self._build_interface_models()
@@ -49,19 +45,27 @@ class ModelBuilder:
             )
             agents.append(agent_model)
 
+        if len(list(filter(lambda a: a.mode == AgentMode.ACTIVE, agents))) > 1:
+            raise NotImplementedError("Multiple active agents are not yet supported in generated code.")
+
+        reference_model = self._build_reference_model(agents, transactions)
+
         return EnvModel(
             project_name=self.loader.uvm.project_name,
             testbench_name=self.loader.uvm.testbench_name,
             agents=agents,
             interfaces=list(interface_models.values()),
-            scoreboard=self._build_scoreboard_model(agents),
+            scoreboard=self._build_scoreboard_model(
+                agents,
+                resolved_connections=reference_model.connections if reference_model else None,
+            ),
             transactions=transactions,
             sequences=self._build_sequences(),
             parameters=self.loader.dut.parameters,
             enums=self.loader.dut.enums,
             dut_instance_name=self.loader.dut.dut_info.name,
             dut_entity_name=self.loader.dut.dut_info.entity_name,
-            reference_model=self._build_reference_model(agents, transactions),
+            reference_model=reference_model,
         )
 
     def _build_variables_from_ports(self, ports: list, field_overrides: list) -> list[SvVariable]:
@@ -128,7 +132,6 @@ class ModelBuilder:
                     class_name=trans_cfg.name,
                     base_class=trans_cfg.base_class,
                     variables=variables,
-                    constraints=[],
                 )
             )
         return transaction_models
@@ -186,28 +189,117 @@ class ModelBuilder:
             )
         return interface_models
 
-    def _build_scoreboard_model(self, agents: list[AgentModel]) -> ScoreboardModel:
-        """Build scoreboard from agents that have a monitor."""
-        exports = [f"{agent.name}_export" for agent in agents if agent.has(ComponentType.MONITOR)]
+    def _build_scoreboard_model(
+        self, agents: list[AgentModel], resolved_connections: list[ResolvedConnection]
+    ) -> ScoreboardModel:
+        """Build scoreboard model with typed exports.
+
+        Export derivation strategy (two sources, merged):
+
+        1. **From resolved connections** (reference model wiring) — any connection
+        whose ``to_component`` is "scoreboard" contributes an export.
+        Role is inferred from the port name suffix ("expected" / "actual").
+        Transaction type comes directly from the connection.
+
+        2. **From monitor agents** (fallback / supplement) — every agent with a
+        MONITOR that was NOT already covered by a connection contributes an
+        "actual" export, using the agent's declared transaction type.
+        """
+        sb_exports: list[ScoreboardExport] = []
+        covered_agents: set[str] = set()  # agent names already handled via connections
+
+        # --- Source 1: explicit connections targeting the scoreboard ---
+        if resolved_connections:
+            for conn in resolved_connections:
+                if conn.to_component != "scoreboard":
+                    continue
+
+                # Infer role from port name, e.g. "write_expected_export" → "expected"
+                port = conn.to_port  # e.g. "write_expected_export"
+                if "expected" in port:
+                    role = "expected"
+                elif "actual" in port:
+                    role = "actual"
+                else:
+                    role = "actual"  # safe default
+                    logger.warning(f"Cannot infer scoreboard export role from port '{port}' — defaulting to 'actual'.")
+
+                # Transaction type must come from the connection (it's typed per-wire)
+                if not conn.transaction:
+                    logger.warning(f"Connection to scoreboard port '{port}' has no transaction type — skipping.")
+                    continue
+
+                # imp_suffix and port_name are derived from the port name
+                # e.g. port "write_expected_export" → suffix "_write_expected"
+                imp_suffix = "_" + port.removesuffix("_export")
+
+                sb_exports.append(
+                    ScoreboardExport(
+                        port_name=port,
+                        imp_suffix=imp_suffix,
+                        transaction_type=conn.transaction,
+                        role=role,
+                        agent_name=conn.from_component,
+                    )
+                )
+                covered_agents.add(conn.from_component)
+
+        # --- Source 2: monitor agents not already covered ---
+        for agent in agents:
+            if not agent.has(ComponentType.MONITOR):
+                continue
+            if agent.name in covered_agents:
+                continue
+
+            # Resolve transaction type: prefer agent-declared, fall back to first transaction
+            trans_type = agent.transaction
+            if not trans_type:
+                if self.loader.uvm.transactions:
+                    trans_type = self.loader.uvm.transactions[0].name
+                    logger.warning(
+                        f"Agent '{agent.name}' has no transaction declared — "
+                        f"falling back to '{trans_type}' for scoreboard export."
+                    )
+                else:
+                    logger.warning(
+                        f"Agent '{agent.name}' has no transaction and no transactions are defined — "
+                        f"skipping scoreboard export."
+                    )
+                    continue
+
+            port_name = f"{agent.name}_actual_export"
+            imp_suffix = f"_{agent.name}_actual"
+
+            sb_exports.append(
+                ScoreboardExport(
+                    port_name=port_name,
+                    imp_suffix=imp_suffix,
+                    transaction_type=trans_type,
+                    role="actual",
+                    agent_name=agent.name,
+                )
+            )
+
         return ScoreboardModel(
             name=f"{self.loader.dut.dut_info.name}_scoreboard",
-            transaction_type=self.loader.uvm.transaction_name,
-            analysis_exports=exports,
+            exports=sb_exports,
+            has_predictor=True,
         )
 
     def _build_sequences(self) -> list[SequenceModel]:
+        # TODO: this is outdated, but not sure if i even will need sequences
         seq_models = []
         for seq_cfg in self.loader.uvm.sequences:
-            sv_constraints = []
-            if seq_cfg.constraints:
-                # Jednoduchý wrapper, v budúcnosti sem môže ísť parser syntaxe
-                sv_constraints.append(SvConstraint(name=f"{seq_cfg.name}_c", body=seq_cfg.constraints))
+            # NOTE: future support for constrains
+            # sv_constraints = []
+            # if seq_cfg.constraints:
+            #     sv_constraints.append(SvConstraint(name=f"{seq_cfg.name}_c", body=seq_cfg.constraints))
 
             model = SequenceModel(
                 name=seq_cfg.name,
                 base_class=seq_cfg.extends if seq_cfg.extends else "uvm_sequence",
-                transaction_type=seq_cfg.transaction if seq_cfg.transaction else self.loader.uvm.transaction_name,
-                constraints=sv_constraints,
+                # transaction_type=seq_cfg.transaction if seq_cfg.transaction else self.loader.uvm.transaction_name,
+                # constraints=sv_constraints,
             )
             seq_models.append(model)
         return seq_models
@@ -229,7 +321,6 @@ class ModelBuilder:
         # TODO: are class name and transaction needed ?
         return ReferenceModelModel(
             class_name=f"{self.loader.dut.dut_info.name}_reference_model",
-            transaction_type=self.loader.uvm.transaction_name,
             strategy=rm_cfg.strategy,
             implementation=rm_cfg.implementation.type,
             dpi_function=rm_cfg.implementation.function,
@@ -254,6 +345,7 @@ class ModelBuilder:
             if conn.transaction and conn.transaction in valid_transaction_names:
                 transaction = conn.transaction
             else:
+                # NOTE: Here we could auto detect transaction if there is
                 if conn.transaction:
                     logger.warning(
                         f"Connection transaction '{conn.transaction}' is not a valid transaction name — ignoring."

@@ -40,13 +40,24 @@ class AgentsUnit(GenerationUnit):
             reg.register(self.key)
             return
 
+        trans_map = reg.get_context("transactions", self.key)
+
         for agent in model.agents:
+            agent_trans = trans_map.get(agent.transaction)
+            if not agent_trans:
+                # Fallback or warning if the model references an un-generated transaction
+                trans_type = agent.transaction
+                trans_pkg_name = f"{trans_type.lower()}_pkg"
+            else:
+                trans_type = agent_trans["type"]
+                trans_pkg_name = agent_trans["pkg_name"]
+
             context = {
                 "agent": agent,
                 "if_name": agent.interface_instance.name,  # per-agent from model
                 "vif_key": agent.interface_instance.name,  # resource_db lookup key
-                "trans_type": reg.get_context("trans_type", self.key),
-                "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
+                "trans_type": trans_type,
+                "trans_pkg_name": trans_pkg_name,
                 "package_name": reg.get_context("package_name", self.key),
                 "parts": agent.parts,
             }

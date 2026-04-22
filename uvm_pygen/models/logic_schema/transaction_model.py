@@ -3,7 +3,7 @@
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from uvm_pygen.constants.uvm_enum import Direction
-from uvm_pygen.models.utils.util_annotation import NonEmptyList, NonEmptyStr
+from uvm_pygen.models.utils.util_annotation import NonEmptyStr
 
 
 class SvVariable(BaseModel):
@@ -51,20 +51,6 @@ class SvVariable(BaseModel):
         return f"`uvm_field_int({self.name}, UVM_ALL_ON)"
 
 
-class SvConstraint(BaseModel):
-    """Representation of a SystemVerilog constraint block.
-
-    ``body`` holds individual lines of code inside the ``constraint`` block.
-    Each entry should be a complete statement (without a trailing newline) —
-    the Jinja2 template is responsible for joining and indenting them.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    name: NonEmptyStr
-    body: list[str] = NonEmptyList
-
-
 class TransactionModel(BaseModel):
     """Data model representing a UVM transaction.
 
@@ -78,8 +64,10 @@ class TransactionModel(BaseModel):
     class_name: NonEmptyStr
     base_class: str = "uvm_sequence_item"
     variables: list[SvVariable] = Field(default_factory=list)
-    constraints: list[SvConstraint] = Field(default_factory=list)
-    macros: list[str] = Field(default_factory=list)  # e.g. `uvm_object_utils_begin` fields
+
+    # maybe in future
+    # constraints: list[SvConstraint] = Field(default_factory=list)
+    # macros: list[str] = Field(default_factory=list)  # e.g. `uvm_object_utils_begin` fields
 
     @property
     def rand_variables(self) -> list[SvVariable]:

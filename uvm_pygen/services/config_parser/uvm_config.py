@@ -116,7 +116,7 @@ class UVMConfiguration(BaseConfiguration):
             try:
                 self.transactions.append(TransactionConfig(**trans))
             except ValidationError as exc:
-                name = raw_trans.get("name", UNKNOWN)
+                name = trans.get("name", UNKNOWN)
                 raise ValueError(f"Transaction '{name}' validation failed in '{source}':\n{exc}") from exc
 
         # Sequences

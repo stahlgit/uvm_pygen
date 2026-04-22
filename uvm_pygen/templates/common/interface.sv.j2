@@ -17,6 +17,7 @@ interface {{ if_model.name }}(
     // Signals
     //--------------------------------------------------------------------------
     {% for port in if_model.ports %}
+    {% if port.is_clock or port.is_reset %}{% continue %}{% endif %}
     {{port.type}} {{port.width}} {{port.name}};  // {{port.description}}
     {% if port.enum_name%}
     {{port.enum_name}} {{port.name.lower()+"_e"}};

@@ -1,15 +1,15 @@
 //------------------------------------------------------------------------------
 // Class: {{ refmodel_name }}
 // Description: Reference model as a uvm_subscriber.
-//              Receives input transaction, computes expected output,
-//              and broadcasts the predicted result.
+//              Receives input transaction ({{ trans_type }}), computes expected output,
+//              and broadcasts the predicted result ({{ output_trans_type }}).
 //------------------------------------------------------------------------------
 
 class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
     `uvm_component_utils({{ refmodel_name }})
 
     // Analysis port for expected output (connected to scoreboard)
-    uvm_analysis_port #({{ trans_type }}) ap_expected;
+    uvm_analysis_port #({{ output_trans_type }}) ap_expected;
 
     // Constructor
     function new(string name, uvm_component parent);
@@ -22,10 +22,10 @@ class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
         ap_expected = new("ap_expected", this);
     endfunction
 
-    // Write method – called when a transaction arrives on the export
+    // Write method – called when an input transaction arrives on the export
     function void write({{ trans_type }} t);
-        {{ trans_type }} expected;
-        expected = {{ trans_type }}::type_id::create("expected");
+        {{ output_trans_type }} expected;
+        expected = {{ output_trans_type }}::type_id::create("expected");
         predict(t, expected);
         ap_expected.write(expected);
     endfunction
@@ -34,15 +34,15 @@ class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
     // Placeholder prediction logic – override in your extended class
     // or edit this method directly.
     // -----------------------------------------------------------------------
-    virtual function void predict({{ trans_type }} inp, {{ trans_type }} outp);
-        // Copy input fields
+    virtual function void predict({{ trans_type }} inp, {{ output_trans_type }} outp);
+        // Input fields available:
         {% for var in trans.variables if var.direction.value == 'input' %}
-        outp.{{ var.name }} = inp.{{ var.name }};
+        // inp.{{ var.name }}
         {% endfor %}
 
         // *** PREDICTION LOGIC GOES HERE ***
         // Output fields to populate:
-        {% for var in trans.variables if var.direction.value == 'output' %}
+        {% for var in output_trans.variables if var.direction.value == 'output' %}
         // outp.{{ var.name }} = ...;
         {% endfor %}
     endfunction

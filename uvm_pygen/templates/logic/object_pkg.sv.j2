@@ -7,5 +7,11 @@ package {{trans.class_name.lower()}}_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
+    import {{ package_name }}::*;
+
+    {% if external_class %}
+    import {{ external_class }}::*;
+    {% endif %}
+
     `include "{{trans.class_name.lower()}}.sv"
 endpackage: {{trans.class_name.lower()}}_pkg

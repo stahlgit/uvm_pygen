@@ -27,7 +27,7 @@ class EnvModel(BaseModel):
         interfaces:         All SystemVerilog interfaces (usually one per agent).
         scoreboard:         Optional scoreboard model; None if not configured.
         sequences:          All sequences to generate.
-        transaction:        The single shared transaction model.
+        transactions:       All transaction models; each agent references one by class name.
         parameters:         DUT parameters forwarded to the params package.
         enums:              DUT enum types forwarded to the params package.
         dut_instance_name:  Instance name used in top-level binding.

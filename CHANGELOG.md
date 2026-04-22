@@ -12,3 +12,6 @@ config alliases for environment etc.
 reference model strategies (subscriber + dual agent) parsing
 
 removed port groups - more like different purpose now 
+
+### future improvment:
+- multiple active agent setup with virtual sequencer etc. 

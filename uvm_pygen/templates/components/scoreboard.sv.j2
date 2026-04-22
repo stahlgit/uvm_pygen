@@ -4,20 +4,21 @@
 //              Raises uvm_error on mismatch.
 //------------------------------------------------------------------------------
 
-`uvm_analysis_imp_decl(_expected)
-`uvm_analysis_imp_decl(_actual)
-
+{% for export in scoreboard.exports %}
+`uvm_analysis_imp_decl({{ export.imp_suffix }})
+{% endfor %}
 
 class {{ scoreboard_name }} extends uvm_scoreboard;
     `uvm_component_utils({{ scoreboard_name }})
 
-    // Two analysis exports – one for expected, one for actual
-    uvm_analysis_imp_expected #({{ trans_type }}, {{ scoreboard_name }}) expected_export;
-    uvm_analysis_imp_actual #({{ trans_type }}, {{ scoreboard_name }}) actual_export;
+    // Analysis exports
+    {% for export in scoreboard.exports %}
+    uvm_analysis_imp{{ export.imp_suffix }} #({{ export.transaction_type }}, {{ scoreboard_name }}) {{ export.port_name }};
+    {% endfor %}
 
-    // Internal FIFOs (or simple queues)
-    local {{ trans_type }} expected_q[$];
+    // Internal queues (keyed by role)
     local {{ trans_type }} actual_q[$];
+    local {{ trans_type }} expected_q[$];
 
     // Constructor
     function new(string name, uvm_component parent);
@@ -27,20 +28,23 @@ class {{ scoreboard_name }} extends uvm_scoreboard;
     // Build phase – create exports
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-        expected_export = new("expected_export", this);
-        actual_export   = new("actual_export", this);
+        {% for export in scoreboard.exports %}
+        {{ export.port_name }} = new("{{ export.port_name }}", this);
+        {% endfor %}
     endfunction
 
-    // Write methods – called when transactions arrive on the respective export
-    function void write_expected({{ trans_type }} t);
-        expected_q.push_back(t);
-        check();
-    endfunction
-
-    function void write_actual({{ trans_type }} t);
+    // Write methods – one per export
+    {% for export in scoreboard.exports %}
+    function void write{{ export.imp_suffix }}({{ export.transaction_type }} t);
+        {% if export.role == "actual" %}
         actual_q.push_back(t);
+        {% else %}
+        expected_q.push_back(t);
+        {% endif %}
         check();
     endfunction
+
+    {% endfor %}
 
     // Local check method – called after each push
     local function void check();
@@ -52,12 +56,13 @@ class {{ scoreboard_name }} extends uvm_scoreboard;
         exp = expected_q.pop_front();
         act = actual_q.pop_front();
 
-        // Compare only output fields
+        // Compare output fields
         if ({% set out_vars = trans.variables | selectattr("direction.value", "equalto", "output") | list %}
             {% for var in out_vars %}
             act.{{ var.name }} != exp.{{ var.name }}{% if not loop.last %} ||{% endif %}
 
-            {% endfor %}) begin
+            {% endfor %}
+            ) begin
             `uvm_error(get_type_name(), $sformatf("Mismatch:\n  act=%p\n  exp=%p", act, exp))
         end else begin
             `uvm_info(get_type_name(), "Match!", UVM_HIGH)

@@ -5,6 +5,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from uvm_pygen.models.utils.util_annotation import NonEmptyStr
 
 
+class ScoreboardExport(BaseModel):
+    """Represents a single analysis export port of the scoreboard."""
+
+    port_name: str  # e.g. "write_actual_export"
+    imp_suffix: str  # e.g. "_write_actual"  (for `uvm_analysis_imp_decl)
+    transaction_type: str  # e.g. "WriteTransaction"
+    role: str  # "actual" | "expected"
+    agent_name: str  # for context / naming
+
+
 class ScoreboardModel(BaseModel):
     """Model for scoreboard generation.
 
@@ -16,11 +26,7 @@ class ScoreboardModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: NonEmptyStr
-    transaction_type: NonEmptyStr
-
-    # Names of the analysis export ports through which the scoreboard receives
-    # transactions, e.g. ["item_collected_export", "expected_export"].
-    analysis_exports: list[NonEmptyStr] = Field(default_factory=list)
+    exports: list[ScoreboardExport] = Field(default_factory=list)
 
     # Whether to generate an internal predictor alongside the scoreboard.
     has_predictor: bool = True

@@ -37,20 +37,20 @@ class EnvUnit(GenerationUnit):
                 "⚠️  Reference model has no connections defined — connect_phase will be empty. "
                 "Add 'connects:' entries to your config or wire manually in the generated file."
             )
+        trans_map = reg.get_context("transactions", self.key)
 
         return {
             "env_name": env_name,
             "testbench_name": model.testbench_name,
             "agents": model.agents,
             "agent_pkgs": [f"{a.name}_pkg" for a in model.agents],
-            "trans_type": reg.get_context("trans_type", self.key),
             "if_name": reg.get_context("if_name", self.key),
             "reference_model": reg.get_context("reference_model", self.key),
             "reference_model_obj": model.reference_model,
             "scoreboard": reg.get_context("scoreboard", self.key),
-            "trans_pkg_name": reg.get_context("trans_pkg_name", self.key),
             "ComponentType": ComponentType,  # for template use: {% if agent.has(ComponentType.DRIVER) %}
             "interfaces": model.interfaces,
+            "trans_pkgs": [trans["pkg_name"] for trans in trans_map.values()],
         }
 
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:

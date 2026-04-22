@@ -8,7 +8,10 @@ package {{ env_name }}_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
-    import {{ trans_pkg_name }}::*;
+    {% for pkg in trans_pkgs %}
+    import {{ pkg }}::*;
+    {% endfor %}
+
     // Import agent packages
     {% for pkg in agent_pkgs %}
     import {{ pkg }}::*;

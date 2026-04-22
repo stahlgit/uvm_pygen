@@ -24,10 +24,27 @@ class ReferenceModelUnit(GenerationUnit):
         return model.dut_instance_name
 
     def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
+        trans_by_class = {t.class_name: t for t in model.transactions}
+        rm = model.reference_model
+
+        input_trans_type: str | None = None
+        output_trans_type: str | None = None
+        if rm:
+            for conn in rm.connections:
+                if input_trans_type is None and conn.to_component == "reference_model" and conn.transaction:
+                    input_trans_type = conn.transaction
+                if output_trans_type is None and conn.from_component == "reference_model" and conn.transaction:
+                    output_trans_type = conn.transaction
+
+        input_trans_type = input_trans_type or reg.get_context("trans_type", self.key)
+        output_trans_type = output_trans_type or input_trans_type
+
         return {
             "refmodel_name": f"{model.dut_instance_name}_reference_model",
-            "trans_type": reg.get_context("trans_type", self.key),
-            "trans": model.transaction,
+            "trans_type": input_trans_type,
+            "output_trans_type": output_trans_type,
+            "trans": trans_by_class.get(input_trans_type),
+            "output_trans": trans_by_class.get(output_trans_type),
         }
 
     def _post_run(self, registry, model, written):

@@ -16,23 +16,4 @@
 3.4 !!! in env analytic port connection to fifo + analytic export
 
 
-
-
-BP výstup:
-
-Introduction - prečo taký generátor potrebujeme - motivácia, bla bla bla (60-70% času je len verifikácia)
-Teoria - UVM 
-    - čo je to, prečo, jednotlivé koncepty
-SoA - aké generátory už existujú
-Riešenie - čo môj generátor robí, zvláda, ... 
-    - koncept generátora
-Potenciálne rozšírenia -čo dá čas
-Experimenty - 
-    - testovanie generátora na inom dizajne
-    - ALU
-    - FIFO + Timer 
-Záver
-    - Potenciálne rozšírenia, vyhodnotenie 
-
-
-zakázať multiple agents, interfaces, ...
+4. add cache for last configs used for automatic detection

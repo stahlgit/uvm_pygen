@@ -40,7 +40,7 @@ class {{ name }}_base_test extends uvm_test;
         // some simulators (Questa mtiUvm).
         begin
             uvm_resource #(virtual {{ if_name }}) vif_res;
-            vif_res = uvm_resource_db #(virtual {{ if_name }})::get_by_name("*", "vif", 0);
+            vif_res = uvm_resource_db #(virtual {{ if_name }})::get_by_name("*", "{{ if_name }}", 0);
             if (vif_res == null)
                 `uvm_fatal(get_type_name(), "Failed to get virtual interface '{{ if_name }}' from resource_db")
             m_vif = vif_res.read(this);

@@ -88,60 +88,42 @@ ports:
 # ============================================================================
 verification:
   project_name: "ALU Functional Verification"
-  testbench_name: "reference_testbench"
+  testbench_name: "dual_agent_testbench"
 
 env:
   name: alu_env
   reference_model: 
     strategy: dual_agent
     implementation: sv_class
-
-    # implementation: 
-    #   type: sv_class
-
-    # implementation:
-    #   type: dpi_extern
-    #   function: "alu_ref_model"   # C function name — required ak type == dpi_extern
-    #   header: "alu_ref.h"         # C header — required ak type == dpi_extern
-
     connects:
-      - from: write_agent.driver.ap        # analysis port on driver
+      - from: rm_agent.driver.ap
         to: reference_model.analysis_export
-        transaction: WriteTransaction 
-    
-      - from: write_agent.monitor.ap
-        to: reference_model.analysis_export  # RM can have multiple exports
-        transaction: WriteTransaction
-    
-      - from: read_agent.monitor.ap
-        to: scoreboard.actual_export
-        transaction: ReadTransaction
-    
+        transaction: AluTransaction
+
       - from: reference_model.ap_expected
         to: scoreboard.expected_export
-        transaction: ReadTransaction
+        transaction: AluTransaction
+
+      - from: dut_agent.monitor.ap
+        to: scoreboard.actual_export
+        transaction: AluTransaction
   
   interfaces:
-    - name: write_if
-      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM]
-    - name: read_if
-      ports: ["EX_ALU_VLD", "EX_ALU", "ALU_RDY"]
+    - name: AluInterface
+      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM, EX_ALU_VLD, EX_ALU, ALU_RDY]
     
   agents:
-    - name: write_agent
-      mode: active # 
-      interface: write_if
-      transaction: WriteTransaction
-      components:
-      - driver
-      - sequencer
-      - monitor
-    - name: read_agent
-      mode: passive
-      interface: read_if
-      transaction: ReadTransaction
-      components:
-      - monitor
+    - name: rm_agent
+      mode: active
+      interface: AluInterface
+      transaction: AluTransaction
+      components: [driver, sequencer, monitor]
+
+    - name: dut_agent
+      mode: active
+      interface: AluInterface
+      transaction: AluTransaction
+      components: [driver, sequencer, monitor]
 
 transactions:
   - name: AluTransaction
@@ -152,17 +134,6 @@ transactions:
       - name: act
         randomize: true
         default: 1
-
-  - name: WriteTransaction
-    base_class: AluTransaction       # inherits from the global one
-    field_overrides:
-      - { name: op,   randomize: true }
-      - { name: movi, randomize: true }
-
-  - name: ReadTransaction
-    base_class: uvm_sequence_item
-    field_overrides: []              # output-only ports, no randomization needed
-# sequences: []   # add sequences here when needed
 
 simulation:
   compilation:

@@ -46,3 +46,6 @@ class ReferenceModelModel(BaseModel):
     dpi_function: str | None = None
     dpi_header: str | None = None
     connections: list[ResolvedConnection] = Field(default_factory=list)
+
+    rm_agent: str | None = None
+    dut_agent: str | None = None

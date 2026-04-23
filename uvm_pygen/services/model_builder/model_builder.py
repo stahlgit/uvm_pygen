@@ -1,6 +1,6 @@
 """Service to build Logic Models from Raw Configurations."""
 
-from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction
+from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction, ReferenceModelStrategy
 from uvm_pygen.models.config_schema.dut_dataclass import Port
 from uvm_pygen.models.config_schema.uvm_dataclass import Connection, ReferenceModelConfig
 from uvm_pygen.models.logic_schema.env_model import AgentModel, EnvModel, InterfaceModel
@@ -45,10 +45,13 @@ class ModelBuilder:
             )
             agents.append(agent_model)
 
-        if len(list(filter(lambda a: a.mode == AgentMode.ACTIVE, agents))) > 1:
-            raise NotImplementedError("Multiple active agents are not yet supported in generated code.")
-
         reference_model = self._build_reference_model(agents, transactions)
+
+        active_count = len([a for a in agents if a.mode == AgentMode.ACTIVE])
+        if active_count > 1 and reference_model and reference_model.strategy == ReferenceModelStrategy.AP_SUBSCRIBER:
+            raise NotImplementedError("Multiple active agents are not yet supported in generated code.")
+        if active_count != 2 and reference_model and reference_model.strategy == ReferenceModelStrategy.DUAL_AGENT:
+            raise ValueError("dual_agent strategy requires exactly 2 active agents.")
 
         return EnvModel(
             project_name=self.loader.uvm.project_name,

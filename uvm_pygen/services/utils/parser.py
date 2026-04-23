@@ -40,10 +40,18 @@ def parse_args():
         ),
     )
 
+    parser.add_argument(
+        "--use-cache", action="store_true", help="Use cached config paths from previous run (.uvm_pygen/cache.json)."
+    )
+
     args = parser.parse_args()
 
     # Enforce mutual exclusivity of --config with --dut-config and --uvm-config
     if args.config and (args.dut_config or args.uvm_config):
         parser.error("--config cannot be used together with --dut-config or --uvm-config.")
+
+    # --use-cache is mutually exclusive with any explicit config flag
+    if args.use_cache and (args.config or args.dut_config or args.uvm_config):
+        parser.error("--use-cache cannot be combined with --config, --dut-config, or --uvm-config.")
 
     return args

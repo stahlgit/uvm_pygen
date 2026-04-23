@@ -2,6 +2,7 @@
 
 import sys
 
+from uvm_pygen.services.config_parser.config_cache import read_cache, write_cache
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 from uvm_pygen.services.config_parser.config_resolver import ConfigResolver, ResolvedConfigs
 from uvm_pygen.services.generation.generator import Generator
@@ -19,11 +20,14 @@ def run():
         logger.debug("[bold magenta]Debug mode enabled[/bold magenta]")
 
     ### PHASE 1 : LOAD AND VALIDATE CONFIGURATIONS ###
-    resolved: ResolvedConfigs = ConfigResolver().resolve(
-        dut_config=args.dut_config,
-        uvm_config=args.uvm_config,
-        unified_config=args.config,
-    )
+    if args.use_cache:
+        resolved: ResolvedConfigs = read_cache()
+    else:
+        resolved: ResolvedConfigs = ConfigResolver().resolve(
+            dut_config=args.dut_config,
+            uvm_config=args.uvm_config,
+            unified_config=args.config,
+        )
 
     if resolved.is_unified:
         loader = ConfigLoader(unified_config_path=resolved.unified)
@@ -40,6 +44,8 @@ def run():
     if not loader.validate():
         logger.error("Configuration validation failed. Please check the provided YAML files for errors.")
         sys.exit(1)
+
+    write_cache(resolved)
 
     ### PHASE 2 : BUILD ENVIRONMENT MODEL ###
     builder = ModelBuilder(loader)

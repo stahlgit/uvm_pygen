@@ -41,9 +41,9 @@ module {{ testbench_name }}_top;
 
   // Reset generation (active {{ reset.active_level }})
   initial begin
-    {{ reset.name }} = {% if reset.active_level == 'high' %}1{% else %}0{% endif %};
+    {{ reset.name }} = {% if reset.active_level == 'active_high' %}1{% else %}0{% endif %};
     #20;
-    {{ reset.name }} = {% if reset.active_level == 'high' %}0{% else %}1{% endif %};
+    {{ reset.name }} = {% if reset.active_level == 'active_high' %}0{% else %}1{% endif %};
   end
 
   // UVM test start

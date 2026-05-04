@@ -18,7 +18,7 @@ class SequencesUnit(GenerationUnit):
     key: str = "sequences"
     deps: list[str] = field(default_factory=lambda: ["transaction", "interface"])
 
-    num_transactions: int = 10
+    num_transactions: int = 20
 
     FILES: ClassVar[list[FileSpec]] = [
         FileSpec(template="sequences/base_sequence.sv.j2", suffix="base_sequence.sv", subdir="sequences"),

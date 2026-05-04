@@ -14,6 +14,7 @@ from uvm_pygen.models.generation.generation_unit import (
     TopUnit,
     TransactionUnit,
 )
+from uvm_pygen.models.generation.generation_unit.coverage_unit import CoverageUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
 from uvm_pygen.models.logic_schema.env_model import EnvModel
 from uvm_pygen.services.generation.file_manager import FileManager
@@ -92,7 +93,6 @@ class Generator:
         logger.info(f"Starting Code Generation for DUT: {self.model.dut_instance_name}")
         log_object(self.model, label="Environment Model")
 
-        
         self._bootstrap_registry()
         units = self._build_units()
         ordered = _topo_sort(units)
@@ -119,6 +119,7 @@ class Generator:
             InterfaceUnit(),
             AgentsUnit(),
             ReferenceModelUnit(),
+            CoverageUnit(),
             ScoreboardUnit(),
             SequencesUnit(),
             EnvUnit(),

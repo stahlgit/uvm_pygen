@@ -27,3 +27,6 @@ wave.tcl
 start.tcl
 *.ini
 wlft*
+*.vstf1
+
+uvm_fve/

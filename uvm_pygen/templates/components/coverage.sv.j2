@@ -1,0 +1,22 @@
+//------------------------------------------------------------------------------
+// Class: {{ dut_name }}_coverage
+// Description: Coverage class for {{ dut_name }}.
+//------------------------------------------------------------------------------
+
+class {{ dut_name }}_coverage extends uvm_subscriber #({{ trans_type}});
+    `uvm_component_utils({{ dut_name }}_coverage)
+
+    // Coverage variables
+    covergroup {{ dut_name }}_cg;
+        {% for var in trans.variables %}
+        {{ var.name }}_cg : coverpoint {{ var.name }};
+        {% endfor %}
+    endgroup
+
+    {{trans_type}} trans;
+
+    function void write({{ trans_type }} t);
+        trans = t;
+        {{ dut_name }}_cg.sample();
+    endfunction
+endclass

@@ -1,6 +1,7 @@
 """Generation unit models for UVM environment generation."""
 
 from .agent_unit import AgentsUnit
+from .coverage_unit import CoverageUnit
 from .env_unit import EnvUnit
 from .generation_unit import GenerationUnit
 from .interface_unit import InterfaceUnit
@@ -15,6 +16,7 @@ from .transaction_unit import TransactionUnit
 
 __all__ = [
     "AgentsUnit",
+    "CoverageUnit",
     "EnvUnit",
     "GenerationUnit",
     "InterfaceUnit",

@@ -13,6 +13,7 @@ from uvm_pygen.models.generation.generation_unit import (
     TestsUnit,
     TopUnit,
     TransactionUnit,
+    WaveUnit,
 )
 from uvm_pygen.models.generation.generation_unit.coverage_unit import CoverageUnit
 from uvm_pygen.models.generation.registry import GenerationRegistry
@@ -126,4 +127,5 @@ class Generator:
             TestsUnit(),
             SimUnit(),
             TopUnit(),
+            WaveUnit(),
         ]

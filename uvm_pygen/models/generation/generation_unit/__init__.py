@@ -13,6 +13,7 @@ from .sim_unit import SimUnit
 from .test_unit import TestsUnit
 from .top_unit import TopUnit
 from .transaction_unit import TransactionUnit
+from .wave_unit import WaveUnit
 
 __all__ = [
     "AgentsUnit",
@@ -28,4 +29,5 @@ __all__ = [
     "TransactionUnit",
     "ScoreboardUnit",
     "ReferenceModelUnit",
+    "WaveUnit",
 ]

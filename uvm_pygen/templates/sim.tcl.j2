@@ -167,9 +167,14 @@ onbreak  resume
 onfinish stop
 
 if { ![batch_mode] } {
-    source "./wave.tcl"
+    source "./{{ testbench_name }}/wave.tcl"
     global TOP_MODULE
     customize_gui /$TOP_MODULE
 }
 
 run -all
+
+if { ![batch_mode] } {
+    wave refresh
+    wave zoom full
+}

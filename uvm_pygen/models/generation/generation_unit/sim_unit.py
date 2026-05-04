@@ -34,4 +34,5 @@ class SimUnit(GenerationUnit):
             "top_module": f"{tb}_top",
             "default_test": f"{model.dut_instance_name}_random_test",
             "src_files": src_files,
+            "testbench_name": tb,
         }

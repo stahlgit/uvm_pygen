@@ -1,7 +1,0 @@
-dut_name: alu
-agents:
-  - name: input_agent
-    type: active
-  - name: output_agent
-    type: passive
-has_scoreboard: true

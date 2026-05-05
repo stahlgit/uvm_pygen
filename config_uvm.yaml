@@ -1,160 +1,50 @@
 # ============================================================================
 # UVM Verification Environment Configuration
 # ============================================================================
-
 verification:
   project_name: "ALU Functional Verification"
-  dut_config: "config_dut.yaml"  # Reference to DUT config
-  testbench_name: "new_test"
-  
-# ============================================================================
-# UVM Environment Structure
-# ============================================================================
-environment:
+  dut_config: "config_dut.yaml"
+  testbench_name: "single_testbench"
+
+env:
   name: alu_env
-  type: uvm_env
-  #TODO: interface alu_if + possibility to add more (clocks, modports, etc.)
-  
-  components:
-    # Agent for driving inputs
-    - name: alu_agent
-      # also add connect
-      type: uvm_agent
-      mode: active  # active/passive
-      interface: alu_if
-      
-      subcomponents:
-        driver:
-          enabled: true
-          type: uvm_driver
-          
-        sequencer:
-          enabled: true
-          type: uvm_sequencer
-          
-        monitor:
-          enabled: true
-          type: uvm_monitor
-          
-        coverage:
-          enabled: true
-          type: uvm_subscriber
-    
-    - name: output_agent # passive agent
-      type: uvm_agent
-      mode: passive
-      interface: alu_if
-      direction: output
-      
-      subcomponents:
-        monitor:
-          enabled: true
-          type: uvm_monitor
-          
-        coverage:
-          enabled: true
-          type: uvm_subscriber
-    # try this, where here is missing monitor --> add warning to user
-    # - name: rando
-    #   type: uvm_agent
-    #   mode: active
-    #   interface: alu_if
-    #   direction: input
-    #   
-    #   subcomponents:
-    #     driver:
-    #       enabled: true
-    #       type: uvm_driver
-    #       
-    #     sequencer:
-    #       enabled: true
-    #       type: uvm_sequencer
+  reference_model:
+    strategy: ap_subscriber
+    implementation: sv_class
+    connects:
+      - from: agent.driver.ap
+        to: reference_model.analysis_export
+        transaction: AluTransaction
+      - from: agent.monitor.ap
+        to: reference_model.analysis_export
+        transaction: AluTransaction
+      - from: agent.monitor.ap
+        to: scoreboard.actual_export
+        transaction: AluTransaction
+      - from: reference_model.ap_expected
+        to: scoreboard.expected_export
+        transaction: AluTransaction
 
-    #TODO add connect --> then we know how to connect analysis ports (scoreboard)
-    # Scoreboard for checking
-    # - name: scoreboard
-    #   type: uvm_scoreboard
-    #   inputs:
-    #     - from: alu_agent.monitor # could this be done as redefiniton ? inherited ?
-    #       port: analysis_port
-    #     - from: output_agent.monitor
-    #       port: analysis_port
-    #   comparison_method: golden_model
-    # 
-    
-    
-    # Golden/Reference Model
-    # - name: golden_model
-    #   type: uvm_subscriber
-    #   input_from: alu_agent.driver
-    #   behavior: "config_dut.yaml:behavior"  # Use DUT behavior spec
-# ============================================================================
-# Transaction Definition
-# ============================================================================
+  interfaces:
+    - name: AluInterface
+      ports: ["Control Signals", ACT, OP, MOVI, REG_A, REG_B, MEM, IMM, EX_ALU_VLD, EX_ALU, ALU_RDY]
+
+  agents:
+    - name: agent
+      mode: active
+      interface: AluInterface
+      transaction: AluTransaction
+      components:
+      - driver
+      - sequencer
+      - monitor
+
 transactions:
-  # Input transaction
-  name: AluTransaction
-  base_class: uvm_sequence_item
-
-  field_overrides:
-    - name: rst
-      randomize: false
-      default: 0
-    
-    - name: act
-      randomize: false 
-      default: 1
-    
-    - name: op
-      randomize: true
-    
-    - name: movi
-      randomize: true
-
-
-
-
-# ============================================================================
-# Simulation Configuration
-# ============================================================================
-simulation:
-  # simulator: questa just questa only it could be extended later
-  # hardcoded for now
-  
-  compilation:
-    options:
-      - "+incdir+./agents"
-      - "-timescale 1ps/1ps"
-      - "-sv"
-      - "+define+UVM_NO_DEPRECATED"
-    
-  elaboration:
-    options:
-      - "-uvmcontrol=all"
-      
-  simulation_options:
-    default_test: random_test
-    verbosity: UVM_MEDIUM
-    coverage: true
-    coverage_options:
-      - "-cvgperinstance"
-    
-  waveform:
-    enabled: true
-    format: wlf
-    save_signals:
-      - "/*"  # All signals
-      
-  reporting:
-    formats:
-      - html
-      - text
-    outputs:
-      coverage: "coverage_report.html"
-      log: "simulation.log"
-
-# ============================================================================
-# Random Control
-# ============================================================================
-randomization:
-  seed: 12345  # Fixed seed for reproducibility (or 'random' for varying)
+  - name: AluTransaction
+    field_overrides:
+      - name: rst
+        randomize: false
+        default: 0
+      - name: act
+        randomize: true
+        default: 1

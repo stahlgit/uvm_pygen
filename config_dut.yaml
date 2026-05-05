@@ -3,191 +3,76 @@
 # ============================================================================
 dut:
   name: alu
-  entity_name: ALU_ENT   # VHDL entity name; omit for SV/Verilog (defaults to name)
+  entity_name: ALU_ENT
   description: "Arithmetic Logic Unit with 16 operations"
-  data_width: 8
-  output_width: 16 # may not necessary for now
-  clock_period: 10 # ns move to UVM_CONFIG
   reset_type: active_high # active_low / active_high
-  language: systemverilog # verilog / systemverilog / vhdl  maybe not necessary now
+  language: systemverilog
 
-# ============================================================================
-# Parameters (for SystemVerilog generation)
-# ============================================================================
-parameters:
+params:
   - name: DATA_WIDTH
     value: 8
     description: "Width of data operands"
-
-  - name: OUTPUT_WIDTH # MULT_RESULT_WIDTH
+  - name: OUTPUT_WIDTH
     value: 16
     description: "Width of output (for multiplication)"
-  
   - name: MAX_VALUE
-    value: 255 # 2^DATA_WIDTH - 1
+    value: 255
     description: "Maximum value for data operands (for constraints)"
 
-# ============================================================================
-# Enumerations (shared across all files)
-# ============================================================================
-enums:
-  # Operations enum
+enumerations:
   operation_t:
     type: "logic [3:0]"
     values:
-      - { value: 0, name: ADD, description: "Addition" }
-      - { value: 1, name: SUB, description: "Subtraction" }
-      - { value: 2, name: MULT, description: "Multiplication" }
-      - { value: 3, name: AND, description: "Bitwise AND" }
-      - { value: 4, name: OR, description: "Bitwise OR" }
-      - { value: 5, name: XOR, description: "Bitwise XOR" }
-      - { value: 6, name: SHIFT_LEFT, description: "Logical shift left" }
-      - { value: 7, name: SHIFT_RIGHT, description: "Logical shift right" }
-      - { value: 8, name: ROTATE_LEFT, description: "Rotate left" }
-      - { value: 9, name: ROTATE_RIGHT, description: "Rotate right" }
-      - { value: 10, name: NOT, description: "Bitwise NOT" }
-      - { value: 11, name: NAND, description: "Bitwise NAND" }
-      - { value: 12, name: NOR, description: "Bitwise NOR" }
-      - { value: 13, name: XNOR, description: "Bitwise XNOR" }
-      - { value: 14, name: INC, description: "Increment" }
-      - { value: 15, name: DEC, description: "Decrement" }
+      - { value: 0,  name: ADD,          description: "Addition" }
+      - { value: 1,  name: SUB,          description: "Subtraction" }
+      - { value: 2,  name: MULT,         description: "Multiplication" }
+      - { value: 3,  name: AND,          description: "Bitwise AND" }
+      - { value: 4,  name: OR,           description: "Bitwise OR" }
+      - { value: 5,  name: XOR,          description: "Bitwise XOR" }
+      - { value: 6,  name: SHIFT_LEFT,   description: "Logical shift left" }
+      - { value: 7,  name: SHIFT_RIGHT,  description: "Logical shift right" }
+      - { value: 8,  name: ROTATE_LEFT,  description: "Rotate left" }
+      - { value: 9,  name: ROTATE_RIGHT, description: "Rotate right" }
+      - { value: 10, name: NOT,          description: "Bitwise NOT" }
+      - { value: 11, name: NAND,         description: "Bitwise NAND" }
+      - { value: 12, name: NOR,          description: "Bitwise NOR" }
+      - { value: 13, name: XNOR,         description: "Bitwise XNOR" }
+      - { value: 14, name: INC,          description: "Increment" }
+      - { value: 15, name: DEC,          description: "Decrement" }
 
-  # MOVI enum
   movi_t:
     type: "logic [1:0]"
     values:
       - { value: 0, name: REGB_OPERAND, description: "Use REG_B as operand" }
-      - { value: 1, name: MEM_OPERAND, description: "Use MEM as operand" }
-      - { value: 2, name: IMM_OPERAND, description: "Use IMM as operand" }
-      - { value: 3, name: UNKNOWN, description: "Invalid - should not be used" }
+      - { value: 1, name: MEM_OPERAND,  description: "Use MEM as operand" }
+      - { value: 2, name: IMM_OPERAND,  description: "Use IMM as operand" }
+      - { value: 3, name: UNKNOWN,      description: "Invalid - should not be used" }
 
-# ============================================================================
-# Ports Definition
-# ============================================================================
 ports:
-  # Clock and Reset
   - name: CLK
     direction: input
     type: logic
-    width: 1 # single bit
-    description: "Clock signal"
+    width: 1
     is_clock: true
+    description: "Clock signal"
+    group: "Control Signals"
 
   - name: RST
     direction: input
     type: logic
     width: 1
-    description: "Reset signal (synchronous)"
     is_reset: true
     active_level: high
+    description: "Reset signal (synchronous)"
+    group: "Control Signals"
 
-  # Control Inputs
-  - name: ACT
-    direction: input
-    type: logic
-    width: 1
-    description: "Activate signal for operation"
-
-  # OP(3:0) [in]
-  - name: OP
-    direction: input
-    type: logic
-    width: (3:0) # also could be "4"
-    description: "Operation selector (16 operations)"
-
-    enum_name: operation_t # could be enum_type or enum
-
-  # MOVI (1:0) [in]
-  - name: MOVI
-    direction: input
-    type: logic
-    width: (1:0)
-    description: "operand B selector"
-
-    enum_name: movi_t # could be enum_type or enum
-
-  # DATA INPUTS
-  # REG_ A (DATA WIDTH-1:0) [in]
-  - name: REG_A
-    direction: input
-    type: logic
-    width: DATA_WIDTH # reference parameter
-    description: "Register A operand"
-
-
-  # REG_ B (DATA WIDTH-1:0) [in]
-  - name: REG_B
-    direction: input
-    type: logic
-    width: DATA_WIDTH # reference parameter
-    description: "Register B operand"
-
-
-  - name: MEM
-    direction: input
-    type: logic
-    width: DATA_WIDTH # reference parameter
-    description: "Memory operand"
-
-
-  - name: IMM
-    direction: input
-    type: logic
-    width: DATA_WIDTH # reference parameter
-    description: "Immediate operand"
-
-
-  # Outputs
-  - name: EX_ALU_VLD
-    direction: output
-    type: logic
-    width: 1
-    description: "Output valid signal"
-
-
-  - name: EX_ALU
-    direction: output
-    type: logic
-    width: DATA_WIDTH 
-    description: "ALU result (16-bit for multiplication)"
-
-  
-  - name: ALU_RDY
-    direction: output
-    type: logic
-    width: 1
-    description: "ALU ready signal for handshaking"
-
-
-
-# ============================================================================
-# Constraints (for transaction generation)
-# ============================================================================
-constraints:
-#  global:
-#    - name: valid_operation
-#      description: "Operation must be valid"
-#      constraint: "OP inside {[ADD:DEC]}"
-#
-#    - name: valid_movi
-#      description: "MOVI must not be UNKNOWN"
-#      constraint: "MOVI != UNKNOWN"
-#
-#  corner_cases:
-#    - name: zero_operand
-#      values: [0]
-#
-#    - name: max_operand
-#      values: ["MAX_VALUE"]
-#
-#    - name: small_values
-#      range: [1, 15]
-#
-#    - name: large_values
-#      range: ["MAX_VALUE-15", "MAX_VALUE-1"]
-
-metadata:
-  version: "1.0"
-  author: "Auto-generated"
-  date: "YYYY-MM-DD"
-  tags: ["ALU", "arithmetic", "logic"]
+  - { name: ACT,        direction: input,  type: logic, width: 1,          description: "Activate signal" }
+  - { name: OP,         direction: input,  type: logic, width: "(3:0)",    enum_name: operation_t, description: "Operation selector" }
+  - { name: MOVI,       direction: input,  type: logic, width: "(1:0)",    enum_name: movi_t,      description: "Operand B selector" }
+  - { name: REG_A,      direction: input,  type: logic, width: DATA_WIDTH, description: "Register A operand" }
+  - { name: REG_B,      direction: input,  type: logic, width: DATA_WIDTH, description: "Register B operand" }
+  - { name: MEM,        direction: input,  type: logic, width: DATA_WIDTH, description: "Memory operand" }
+  - { name: IMM,        direction: input,  type: logic, width: DATA_WIDTH, description: "Immediate operand" }
+  - { name: EX_ALU_VLD, direction: output, type: logic, width: 1,          description: "Output valid signal" }
+  - { name: EX_ALU,     direction: output, type: logic, width: DATA_WIDTH, description: "ALU result" }
+  - { name: ALU_RDY,    direction: output, type: logic, width: 1,          description: "ALU ready signal" }

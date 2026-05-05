@@ -36,7 +36,11 @@ class ReferenceModelUnit(GenerationUnit):
                 if output_trans_type is None and conn.from_component == "reference_model" and conn.transaction:
                     output_trans_type = conn.transaction
 
-        input_trans_type = input_trans_type or reg.get_context("trans_type", self.key)
+        # Fall back to the first declared transaction when connections don't
+        # carry an explicit type.  reg.get_context("trans_type") is never
+        # registered, so don't call it.
+        if input_trans_type is None and model.transactions:
+            input_trans_type = model.transactions[0].class_name
         output_trans_type = output_trans_type or input_trans_type
 
         return {

@@ -9,30 +9,27 @@ dut:
   name: fifo
   entity_name: fifo
   description: "16-bit FIFO with Hamming(22,16) coded output and status flags"
-  data_width: 16
-  output_width: 22        # CODE_OUT is 22-bit
-  clock_period: 10        # ns
-  reset_type: active_high # RST = '1' triggers reset (async)
+  reset_type: active_high
   language: vhdl
 
-parameters:
+params:
   - name: DEPTH
     value: 16
     description: "Depth of the FIFO (number of 16-bit entries)"
 
 ports:
-  - { name: CLK,            direction: input,  type: std_logic, width: 1,   is_clock: true,  description: "Clock signal" }
-  - { name: RST,            direction: input,  type: std_logic, width: 1,   is_reset: true,  active_level: high, description: "Asynchronous reset (active high)" }
-  - { name: ENR,            direction: input,  type: std_logic, width: 1,   description: "Read enable - must be '0' when not reading" }
-  - { name: ENW,            direction: input,  type: std_logic, width: 1,   description: "Write enable - must be '0' when not writing" }
+  - { name: CLK,            direction: input,  type: std_logic,        width: 1,  is_clock: true,                     description: "Clock signal" }
+  - { name: RST,            direction: input,  type: std_logic,        width: 1,  is_reset: true, active_level: high, description: "Asynchronous reset (active high)" }
+  - { name: ENR,            direction: input,  type: std_logic,        width: 1,  description: "Read enable" }
+  - { name: ENW,            direction: input,  type: std_logic,        width: 1,  description: "Write enable" }
   - { name: DATA_IN,        direction: input,  type: std_logic_vector, width: 16, description: "Write data" }
   - { name: DATA_OUT,       direction: output, type: std_logic_vector, width: 16, description: "Read data (registered, one cycle after ENR)" }
   - { name: CODE_OUT,       direction: output, type: std_logic_vector, width: 22, description: "Hamming(22,16) encoded read data (registered)" }
-  - { name: FIFO_EMPTY,     direction: output, type: std_logic, width: 1,   description: "High when FIFO contains no entries" }
-  - { name: FIFO_FULL,      direction: output, type: std_logic, width: 1,   description: "High when FIFO is completely full" }
-  - { name: FIFO_THRESHOLD, direction: output, type: std_logic, width: 1,   description: "High when read pointer equals write pointer (half-full marker)" }
-  - { name: FIFO_OVERFLOW,  direction: output, type: std_logic, width: 1,   description: "High when a write is attempted while FIFO is full" }
-  - { name: FIFO_UNDERFLOW, direction: output, type: std_logic, width: 1,   description: "High when a read is attempted while FIFO is empty" }
+  - { name: FIFO_EMPTY,     direction: output, type: std_logic,        width: 1,  description: "High when FIFO contains no entries" }
+  - { name: FIFO_FULL,      direction: output, type: std_logic,        width: 1,  description: "High when FIFO is completely full" }
+  - { name: FIFO_THRESHOLD, direction: output, type: std_logic,        width: 1,  description: "High when read pointer equals write pointer" }
+  - { name: FIFO_OVERFLOW,  direction: output, type: std_logic,        width: 1,  description: "High when a write is attempted while FIFO is full" }
+  - { name: FIFO_UNDERFLOW, direction: output, type: std_logic,        width: 1,  description: "High when a read is attempted while FIFO is empty" }
 
 # ============================================================================
 # UVM — Verification Environment
@@ -41,52 +38,46 @@ verification:
   project_name: "FIFO Functional Verification"
   testbench_name: "fifo_testbench"
 
-environment:
+env:
   name: fifo_env
-  type: uvm_env
   reference_model:
     strategy: ap_subscriber
-  components:
-    - name: fifo_agent
-      type: uvm_agent
+    implementation: sv_class
+    connects:
+      - from: agent.driver.ap
+        to: reference_model.analysis_export
+        transaction: FifoTransaction
+      - from: agent.monitor.ap
+        to: reference_model.analysis_export
+        transaction: FifoTransaction
+      - from: agent.monitor.ap
+        to: scoreboard.actual_export
+        transaction: FifoTransaction
+      - from: reference_model.ap_expected
+        to: scoreboard.expected_export
+        transaction: FifoTransaction
+
+  interfaces:
+    - name: FifoInterface
+      ports: [CLK, RST, ENR, ENW, DATA_IN, DATA_OUT, CODE_OUT, FIFO_EMPTY, FIFO_FULL, FIFO_THRESHOLD, FIFO_OVERFLOW, FIFO_UNDERFLOW]
+
+  agents:
+    - name: agent
       mode: active
-      interface: fifo_if
-      subcomponents:
-        driver:    { enabled: true, type: uvm_driver }
-        sequencer: { enabled: true, type: uvm_sequencer }
-        monitor:   { enabled: true, type: uvm_monitor }
-        coverage:  { enabled: true, type: uvm_subscriber }
+      interface: FifoInterface
+      transaction: FifoTransaction
+      components:
+      - driver
+      - sequencer
+      - monitor
 
 transactions:
-  name: FifoTransaction
-  base_class: uvm_sequence_item
-  field_overrides:
-    - { name: rst,      randomize: false, default: 0 }
-    - { name: enr,      randomize: true }
-    - { name: enw,      randomize: true }
-    - { name: data_in,  randomize: true }
-
-simulation:
-  compilation:
-    options:
-      - "+incdir+./agents"
-      - "-timescale 1ps/1ps"
-      - "-sv"
-      - "+define+UVM_NO_DEPRECATED"
-  elaboration:
-    options:
-      - "-uvmcontrol=all"
-  simulation_options:
-    default_test: random_test
-    verbosity: UVM_MEDIUM
-    coverage: true
-  waveform:
-    enabled: true
-    format: wlf
-    save_signals: ["/*"]
-
-randomization:
-  seed: 12345
+  - name: FifoTransaction
+    field_overrides:
+      - { name: rst,     randomize: false, default: 0 }
+      - { name: enr,     randomize: true }
+      - { name: enw,     randomize: true }
+      - { name: data_in, randomize: true }
 
 # ============================================================================
 # Predictor notes (for reference model implementation)

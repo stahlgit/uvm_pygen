@@ -93,7 +93,7 @@ class ModelBuilder:
                     sv_type=sv_type,
                     is_rand=is_rand,
                     default_value=default_val,
-                    comment=port.description,
+                    comment=port.description or "",
                     direction=Direction(port.direction) if port.direction else None,
                     is_enum=bool(port.enum_def),
                 )

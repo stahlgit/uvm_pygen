@@ -164,24 +164,3 @@ transactions:
     field_overrides: []              # output-only ports, no randomization needed
 # sequences: []   # add sequences here when needed
 
-simulation:
-  compilation:
-    options:
-      - "+incdir+./agents"
-      - "-timescale 1ps/1ps"
-      - "-sv"
-      - "+define+UVM_NO_DEPRECATED"
-  elaboration:
-    options:
-      - "-uvmcontrol=all"
-  simulation_options:
-    default_test: random_test
-    verbosity: UVM_MEDIUM
-    coverage: true
-  waveform:
-    enabled: true
-    format: wlf
-    save_signals: ["/*"]
-
-randomization:
-  seed: 12345

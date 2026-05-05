@@ -9,13 +9,10 @@ dut:
   name: timer
   entity_name: timer
   description: "Register-mapped countdown/up timer with IRQ, 4 modes, and 64-bit cycle counter"
-  data_width: 32
-  output_width: 32
-  clock_period: 10        # ns
-  reset_type: active_low  # RST = '0' triggers reset (process checks RST = '0')
+  reset_type: active_low
   language: vhdl
 
-parameters:
+params:
   - name: ADDR_WIDTH
     value: 32
     description: "Width of the address bus"
@@ -27,9 +24,9 @@ parameters:
     description: "Address space bit width for timer registers (256-byte window)"
   - name: RST_ACT_LEVEL
     value: 1
-    description: "Reset active level: 1 = active low RST pin (default), matches process logic"
+    description: "Reset active level: 1 = active low RST pin"
 
-enums:
+enumerations:
   request_t:
     type: "logic [1:0]"
     values:
@@ -56,23 +53,16 @@ enums:
       - { value: 2, name: ONE_SHOT,     description: "Count to CMP then disable itself" }
       - { value: 3, name: CONTINUOUS,   description: "Free-running counter, no compare" }
 
-# Register map (informational — used by predictor)
-register_map:
-  - { name: TIMER_CNT,     offset: "0x00", access: read_write,  description: "Timer Count register (32-bit)" }
-  - { name: TIMER_CMP,     offset: "0x04", access: read_write,  description: "Timer Compare register (32-bit)" }
-  - { name: TIMER_CR,      offset: "0x08", access: read_write,  description: "Timer Control register — bits[1:0] = mode" }
-  - { name: TIMER_CYCLE_L, offset: "0x10", access: read_only,   description: "64-bit cycle counter, low word" }
-  - { name: TIMER_CYCLE_H, offset: "0x14", access: read_only,   description: "64-bit cycle counter, high word" }
 
 ports:
-  - { name: CLK,      direction: input,  type: std_logic,        width: 1,  is_clock: true,  description: "Clock signal" }
-  - { name: RST,      direction: input,  type: std_logic,        width: 1,  is_reset: true,  active_level: low, description: "Asynchronous reset (active low)" }
-  - { name: REQUEST,  direction: input,  type: std_logic_vector, width: 2,  enum_name: request_t,  description: "Bus request type" }
-  - { name: ADDRESS,  direction: input,  type: std_logic_vector, width: "ADDR_WIDTH", description: "Register address" }
-  - { name: DATA_IN,  direction: input,  type: std_logic_vector, width: "DATA_WIDTH", description: "Write data" }
-  - { name: RESPONSE, direction: output, type: std_logic_vector, width: 3,  enum_name: response_t, description: "Bus response (combinational from current + registered request)" }
-  - { name: DATA_OUT, direction: output, type: std_logic_vector, width: "DATA_WIDTH", description: "Read data (valid when RESPONSE = RSP_ACK and request was READ)" }
-  - { name: P_IRQ,    direction: output, type: std_logic,        width: 1,  description: "Interrupt: high when timer enabled and cnt == cmp" }
+  - { name: CLK,      direction: input,  type: std_logic,        width: 1,          is_clock: true,                   description: "Clock signal" }
+  - { name: RST,      direction: input,  type: std_logic,        width: 1,          is_reset: true, active_level: low, description: "Asynchronous reset (active low)" }
+  - { name: REQUEST,  direction: input,  type: std_logic_vector, width: 2,          enum_name: request_t,             description: "Bus request type" }
+  - { name: ADDRESS,  direction: input,  type: std_logic_vector, width: ADDR_WIDTH, description: "Register address" }
+  - { name: DATA_IN,  direction: input,  type: std_logic_vector, width: DATA_WIDTH, description: "Write data" }
+  - { name: RESPONSE, direction: output, type: std_logic_vector, width: 3,          enum_name: response_t,            description: "Bus response" }
+  - { name: DATA_OUT, direction: output, type: std_logic_vector, width: DATA_WIDTH, description: "Read data (valid when RESPONSE = RSP_ACK and request was READ)" }
+  - { name: P_IRQ,    direction: output, type: std_logic,        width: 1,          description: "Interrupt: high when timer enabled and cnt == cmp" }
 
 # ============================================================================
 # UVM — Verification Environment
@@ -81,52 +71,46 @@ verification:
   project_name: "Timer Functional Verification"
   testbench_name: "timer_testbench"
 
-environment:
+env:
   name: timer_env
-  type: uvm_env
   reference_model:
     strategy: ap_subscriber
-  components:
-    - name: timer_agent
-      type: uvm_agent
+    implementation: sv_class
+    connects:
+      - from: agent.driver.ap
+        to: reference_model.analysis_export
+        transaction: TimerTransaction
+      - from: agent.monitor.ap
+        to: reference_model.analysis_export
+        transaction: TimerTransaction
+      - from: agent.monitor.ap
+        to: scoreboard.actual_export
+        transaction: TimerTransaction
+      - from: reference_model.ap_expected
+        to: scoreboard.expected_export
+        transaction: TimerTransaction
+
+  interfaces:
+    - name: TimerInterface
+      ports: [CLK, RST, REQUEST, ADDRESS, DATA_IN, RESPONSE, DATA_OUT, P_IRQ]
+
+  agents:
+    - name: agent
       mode: active
-      interface: timer_if
-      subcomponents:
-        driver:    { enabled: true, type: uvm_driver }
-        sequencer: { enabled: true, type: uvm_sequencer }
-        monitor:   { enabled: true, type: uvm_monitor }
-        coverage:  { enabled: true, type: uvm_subscriber }
+      interface: TimerInterface
+      transaction: TimerTransaction
+      components:
+      - driver
+      - sequencer
+      - monitor
 
 transactions:
-  name: TimerTransaction
-  base_class: uvm_sequence_item
-  field_overrides:
-    - { name: rst,      randomize: false, default: 1 }   # active-low: 1 = not in reset
-    - { name: request,  randomize: true }
-    - { name: address,  randomize: true }
-    - { name: data_in,  randomize: true }
-
-simulation:
-  compilation:
-    options:
-      - "+incdir+./agents"
-      - "-timescale 1ps/1ps"
-      - "-sv"
-      - "+define+UVM_NO_DEPRECATED"
-  elaboration:
-    options:
-      - "-uvmcontrol=all"
-  simulation_options:
-    default_test: random_test
-    verbosity: UVM_MEDIUM
-    coverage: true
-  waveform:
-    enabled: true
-    format: wlf
-    save_signals: ["/*"]
-
-randomization:
-  seed: 12345
+  - name: TimerTransaction
+    field_overrides:
+      - { name: rst,      randomize: false, default: 1 }  # active-low: 1 = not in reset
+      - { name: request,  randomize: true }
+      - { name: address,  randomize: true }
+      - { name: data_in,  randomize: true }
 
 # ============================================================================
 # Predictor notes (for reference model implementation)

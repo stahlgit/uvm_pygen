@@ -17,6 +17,13 @@ package {{ env_name }}_pkg;
     import {{ pkg }}::*;
     {% endfor %}
 
+    // Coverage classes
+    {% for agent in agents %}
+    {% if agent.has(ComponentType.MONITOR) %}
+    `include "{{ agent.name }}_coverage.sv"
+    {% endif %}
+    {% endfor %}
+
     // Environment class
     `include "{{ reference_model }}.sv"
     `include "{{ scoreboard }}.sv"

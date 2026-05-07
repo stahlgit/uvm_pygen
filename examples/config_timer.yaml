@@ -81,9 +81,6 @@ env:
         to: reference_model.analysis_export
         transaction: TimerTransaction
       - from: agent.monitor.ap
-        to: reference_model.analysis_export
-        transaction: TimerTransaction
-      - from: agent.monitor.ap
         to: scoreboard.actual_export
         transaction: TimerTransaction
       - from: reference_model.ap_expected

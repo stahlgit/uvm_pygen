@@ -15,11 +15,6 @@ class {{ agent.name }} extends uvm_agent;
     {% endfor %}
 
     //--------------------------------------------------------------------------
-    // Analysis Port (pass-through from monitor)
-    //--------------------------------------------------------------------------
-    uvm_analysis_port #({{ trans_type }}) analysis_port;
-
-    //--------------------------------------------------------------------------
     // Constructor
     //--------------------------------------------------------------------------
     function new(string name, uvm_component parent);
@@ -42,9 +37,6 @@ class {{ agent.name }} extends uvm_agent;
     //--------------------------------------------------------------------------
     function void connect_phase(uvm_phase phase);
         super.connect_phase(phase);
-
-        // Expose monitor analysis port at agent level
-        analysis_port = m_monitor.analysis_port;
 
         {% if agent.mode.value == "active" %}
         // Connect driver ↔ sequencer TLM path

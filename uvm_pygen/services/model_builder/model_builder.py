@@ -344,10 +344,11 @@ class ModelBuilder:
         self, connects: list[Connection], valid_components: set[str], valid_transaction_names: set[str]
     ) -> list[ResolvedConnection]:
         """Parse and validate endpoint strings into ResolvedConnection objects."""
+        _MONITOR_AP = "m_monitor.analysis_port"
         _PORT_ALIASES: dict[str, str] = {
             "driver.ap": "m_driver.ap",
-            "monitor.ap": "m_monitor.analysis_port",
-            "monitor.analysis_port": "m_monitor.analysis_port",
+            "monitor.ap": _MONITOR_AP,
+            "monitor.analysis_port": _MONITOR_AP,
         }
 
         resolved = []
@@ -364,6 +365,15 @@ class ModelBuilder:
                 raise ValueError(
                     f"Config Error: Connection destination '{to_comp}' in '{conn.to_endpoint}' "
                     f"does not exist. Valid components: {', '.join(valid_components)}"
+                )
+            # NOTE: potential weak point in multi agent setup, out of scope for now.
+            if from_port == _MONITOR_AP and to_comp == "reference_model":
+                logger.warning(
+                    f"⚠️  Suspicious connection: '{conn.from_endpoint}' → '{conn.to_endpoint}'. "
+                    f"The monitor observes DUT outputs — wiring it to the reference model's analysis_export "
+                    f"causes predict() to fire on output transactions, not inputs. "
+                    f"Did you mean 'agent.driver.ap → reference_model.analysis_export'? "
+                    f"Monitor outputs should go to 'scoreboard.actual_export'."
                 )
 
             if conn.transaction and conn.transaction in valid_transaction_names:

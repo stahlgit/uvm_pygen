@@ -107,16 +107,12 @@ env:
     connects:
       - from: agent.driver.ap              # Send driven inputs to the reference model
         to: reference_model.analysis_export
-        transaction: AluTransaction 
-    
-      - from: agent.monitor.ap             # Send monitored inputs to the reference model
-        to: reference_model.analysis_export  
         transaction: AluTransaction
-    
+
       - from: agent.monitor.ap             # Send monitored outputs to the scoreboard (Actuals)
         to: scoreboard.actual_export
         transaction: AluTransaction
-    
+
       - from: reference_model.ap_expected  # Send computed expecteds to the scoreboard (Expecteds)
         to: scoreboard.expected_export
         transaction: AluTransaction

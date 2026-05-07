@@ -48,9 +48,6 @@ env:
         to: reference_model.analysis_export
         transaction: FifoTransaction
       - from: agent.monitor.ap
-        to: reference_model.analysis_export
-        transaction: FifoTransaction
-      - from: agent.monitor.ap
         to: scoreboard.actual_export
         transaction: FifoTransaction
       - from: reference_model.ap_expected

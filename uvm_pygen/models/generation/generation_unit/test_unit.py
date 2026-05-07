@@ -18,7 +18,7 @@ class TestsUnit(GenerationUnit):
     key: str = "tests"
     deps: list[str] = field(default_factory=lambda: ["env", "interface", "agents"])
 
-    num_transactions: int = 10
+    num_transactions: int = 500
     drain_time: int = 100
 
     FILES: ClassVar[list[FileSpec]] = [

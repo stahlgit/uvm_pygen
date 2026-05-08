@@ -37,6 +37,12 @@ class TestsUnit(GenerationUnit):
     def _prefix(self, model: EnvModel) -> str:
         return model.dut_instance_name
 
+    def _resolve_num_transactions(self, model: EnvModel) -> int:
+        for t in model.transactions:
+            if t.num_transactions is not None:
+                return t.num_transactions
+        return self.num_transactions
+
     def _build_context(self, reg: GenerationRegistry, model: EnvModel) -> dict:
         return {
             "name": model.dut_instance_name,
@@ -44,7 +50,7 @@ class TestsUnit(GenerationUnit):
             "env": reg.get_context("env_pkg_name", self.key),
             "if_name": reg.get_context("if_name", self.key),
             "active_agents": [a for a in model.agents if a.has(ComponentType.DRIVER) and a.mode == AgentMode.ACTIVE],
-            "num_transactions": self.num_transactions,
+            "num_transactions": self._resolve_num_transactions(model),
             "drain_time": self.drain_time,
             "agents": model.agents,
             "tests": [
@@ -53,6 +59,7 @@ class TestsUnit(GenerationUnit):
             ],
         }
 
+    #BUG: if there is only passive agent, random test is not generated but included in test_pkg !
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:
         reg.register(self.key)
         pkg_filename = f"{model.dut_instance_name}_test_pkg.sv"

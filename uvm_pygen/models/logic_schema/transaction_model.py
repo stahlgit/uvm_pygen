@@ -64,6 +64,7 @@ class TransactionModel(BaseModel):
     class_name: NonEmptyStr
     base_class: str = "uvm_sequence_item"
     variables: list[SvVariable] = Field(default_factory=list)
+    num_transactions: int | None = None
 
     # maybe in future
     # constraints: list[SvConstraint] = Field(default_factory=list)

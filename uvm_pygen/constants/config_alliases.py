@@ -17,6 +17,9 @@ INTERFACE_ALIASES: frozenset[str] = frozenset({"interfaces", "interface", "uvm_i
 AGENT_ALIASES: frozenset[str] = frozenset(
     {"agents", "agent", "uvm_agents", "components", "component", "uvm_components"}
 )
+NUM_TRANSACTIONS_ALIASES: frozenset[str] = frozenset(
+    {"num_transactions", "num_trans", "n_transactions", "transaction_count"}
+)
 
 # Maps each canonical yaml_key to its full alias group (canonical included).
 # ConfigLayout uses this to expand uvm_keys/dut_keys and build required-key groups.

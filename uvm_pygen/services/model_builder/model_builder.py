@@ -135,6 +135,7 @@ class ModelBuilder:
                     class_name=trans_cfg.name,
                     base_class=trans_cfg.base_class,
                     variables=variables,
+                    num_transactions=trans_cfg.num_transactions,
                 )
             )
         return transaction_models

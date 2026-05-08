@@ -2,9 +2,10 @@
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from pydantic.functional_validators import model_validator
 
+from uvm_pygen.constants.config_alliases import NUM_TRANSACTIONS_ALIASES
 from uvm_pygen.constants.uvm_enum import (
     AgentMode,
     ComponentType,
@@ -74,6 +75,7 @@ class TransactionConfig(BaseModel):
     name: str
     base_class: str = "uvm_sequence_item"
     field_overrides: list[TransactionField] = []
+    num_transactions: int | None = Field(None, validation_alias=AliasChoices(*NUM_TRANSACTIONS_ALIASES))
 
 
 class Sequence(BaseModel):

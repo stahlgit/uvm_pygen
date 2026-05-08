@@ -44,6 +44,15 @@ def parse_args():
         "--use-cache", action="store_true", help="Use cached config paths from previous run (.uvm_pygen/cache.json)."
     )
 
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help=(
+            "Re-seed the merge cache from the current output directory before generating. "
+            "Use this once after a cold start (missing cache) to restore three-way merge capability."
+        ),
+    )
+
     args = parser.parse_args()
 
     # Enforce mutual exclusivity of --config with --dut-config and --uvm-config

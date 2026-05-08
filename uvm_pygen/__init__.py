@@ -5,6 +5,7 @@ import sys
 from uvm_pygen.services.config_parser.config_cache import read_cache, write_cache
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
 from uvm_pygen.services.config_parser.config_resolver import ConfigResolver, ResolvedConfigs
+from uvm_pygen.services.generation.file_manager import FileManager
 from uvm_pygen.services.generation.generator import Generator
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
 from uvm_pygen.services.utils.logger import logger, set_debug_mode
@@ -52,5 +53,8 @@ def run():
     env_model = builder.build()
 
     ### PHASE 3 : GENERATE UVM VERIFICATION ENVIRONMENT ###
+    if args.reset:
+        FileManager(env_model.testbench_name).reset()
+
     generator = Generator(env_model)
     generator.generate_all()

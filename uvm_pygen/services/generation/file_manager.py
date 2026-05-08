@@ -57,12 +57,13 @@ class FileManager:
                     isinstance(region, tuple) and region[0] == "conflict" for region in merge.merge_regions()
                 )
                 if has_conflict:
-                    # Write conflict file and warn
-                    conflict_path = file_path.with_suffix(file_path.suffix + ".conflict")
-                    with open(conflict_path, "w", encoding="utf-8") as f:
-                        f.writelines(merge.merge_lines())  # use merge_lines() here
-                    logger.warning(f"  ⚠️ Conflict detected – saved as {conflict_path}")
-                    # Do not overwrite original file
+                    # Write conflict markers into the file itself (Git-style).
+                    # The file won't compile, forcing the user to resolve before continuing.
+                    # Cache is intentionally NOT updated so the correct base is preserved
+                    # for the next run after the user resolves the conflict.
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.writelines(merge.merge_lines(name_a="your edits", name_b="generated"))
+                    logger.warning(f"  ⚠️ Merge conflict in {file_path} – resolve conflict markers and re-run.")
                     return None
                 else:
                     final_content = "".join(merge.merge_lines())  # and here
@@ -87,6 +88,37 @@ class FileManager:
             f.write(content)
 
         return file_path
+
+    def reset(self) -> int:
+        """Adopt all current output files as the merge base in cache.
+
+        Resolves the cold-start problem: after reset, the next generation
+        run can perform three-way merges instead of skipping uncached files.
+
+        Returns the number of files synced to cache.
+        """
+        if not self.output_dir.exists():
+            logger.warning(f"Output directory {self.output_dir} does not exist – nothing to reset.")
+            return 0
+
+        count = 0
+        for file_path in self.output_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+            if file_path.suffix == ".conflict":
+                continue
+            rel = file_path.relative_to(self.output_dir)
+            cache_path = self.cache_dir / self.output_dir / rel
+            self._create_dir(cache_path.parent)
+            cache_path.write_text(file_path.read_text(encoding="utf-8"), encoding="utf-8")
+            logger.info(f"  Cached: {file_path}")
+            count += 1
+
+        if count:
+            logger.info(f"Reset complete – {count} file(s) adopted as merge base.")
+        else:
+            logger.warning(f"No files found in {self.output_dir} – nothing to reset.")
+        return count
 
     def _create_dir(self, path: Path) -> None:
         """Create directory if it doesn't exist."""

@@ -69,32 +69,99 @@ class TestFileManagerWrite:
 
         # Re-generate with change to line3
         result = fm.write("merge.sv", "line1\nline2\nNEW_line3\n")
-        # Non-conflicting merge should succeed (returns a path)
-        if result is not None:
-            content = result.read_text(encoding="utf-8")
-            assert "USER_line1" in content or "NEW_line3" in content
+        assert result is not None
+        content = result.read_text(encoding="utf-8")
+        assert "USER_line1" in content
+        assert "NEW_line3" in content
 
-    def test_creates_conflict_file_on_merge_conflict(self, fm, tmp_path):
-        # Generate v1 (base and local) — fixture chdir'd to tmp_path
+    def test_writes_conflict_markers_into_file_on_conflict(self, fm, tmp_path):
         base_content = "shared_line\n"
         fm.write("conflict.sv", base_content)
 
-        # User edits the same line
         output_file = tmp_path / "output" / "conflict.sv"
         output_file.write_text("USER_EDIT\n", encoding="utf-8")
 
-        # Re-generate with a different change to the same line
         result = fm.write("conflict.sv", "GENERATED_EDIT\n")
 
-        # Conflict creates .conflict file and returns None
-        conflict_file = tmp_path / "output" / "conflict.sv.conflict"
-        if result is None:
-            assert conflict_file.exists()
+        assert result is None
+        content = output_file.read_text(encoding="utf-8")
+        assert "your edits" in content
+        assert "generated" in content
+        assert "USER_EDIT" in content
+        assert "GENERATED_EDIT" in content
+
+    def test_conflict_does_not_update_cache(self, fm, tmp_path):
+        fm.write("conflict.sv", "shared_line\n")
+        cache_path = tmp_path / "cache" / "output" / "conflict.sv"
+        cache_mtime_before = cache_path.stat().st_mtime
+
+        output_file = tmp_path / "output" / "conflict.sv"
+        output_file.write_text("USER_EDIT\n", encoding="utf-8")
+        fm.write("conflict.sv", "GENERATED_EDIT\n")
+
+        assert cache_path.stat().st_mtime == cache_mtime_before
 
     def test_returns_path_on_success(self, fm):
         path = fm.write("ok.sv", "content\n")
         assert path is not None
         assert isinstance(path, type(path))  # pathlib.Path
+
+
+class TestFileManagerReset:
+    def test_reset_copies_files_to_cache(self, fm, tmp_path):
+        output_file = tmp_path / "output" / "foo.sv"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text("// original\n", encoding="utf-8")
+
+        fm.reset()
+
+        cache_path = tmp_path / "cache" / "output" / "foo.sv"
+        assert cache_path.exists()
+        assert cache_path.read_text(encoding="utf-8") == "// original\n"
+
+    def test_reset_enables_merge_after_cold_start(self, fm, tmp_path):
+        # Simulate cold start: file exists on disk but no cache entry
+        output_file = tmp_path / "output" / "bar.sv"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text("// user content\n", encoding="utf-8")
+
+        # Without reset, write() would skip the file
+        result_before = fm.write("bar.sv", "// generated\n")
+        assert result_before is None
+
+        # After reset, the file is cached → write() can now merge/overwrite
+        output_file.write_text("// user content\n", encoding="utf-8")  # restore
+        fm.reset()
+        result_after = fm.write("bar.sv", "// generated\n")
+        assert result_after is not None
+
+    def test_reset_skips_conflict_files(self, fm, tmp_path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        conflict_file = output_dir / "foo.sv.conflict"
+        conflict_file.write_text("<<<\n", encoding="utf-8")
+
+        count = fm.reset()
+
+        assert count == 0
+        assert not (tmp_path / "cache" / "output" / "foo.sv.conflict").exists()
+
+    def test_reset_returns_file_count(self, fm, tmp_path):
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "a.sv").write_text("a\n", encoding="utf-8")
+        (output_dir / "b.sv").write_text("b\n", encoding="utf-8")
+
+        count = fm.reset()
+        assert count == 2
+
+    def test_reset_warns_when_output_dir_missing(self, fm, tmp_path):
+        # output_dir was created by FileManager.__init__, remove it
+        import shutil
+        shutil.rmtree(tmp_path / "output")
+
+        count = fm.reset()
+        assert count == 0
 
 
 class TestFileManagerReadLines:

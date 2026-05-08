@@ -58,6 +58,9 @@ python main.py
 # Re-use the previously resolved config paths (skip discovery)
 python main.py --use-cache
 
+# Recover from a cold start (missing or deleted cache) and regenerate
+python main.py --reset --config config.yaml
+
 # Verbose output
 python main.py --config config.yaml --debug
 
@@ -77,6 +80,7 @@ The generator writes SystemVerilog `.sv` files and TCL simulation scripts direct
 | `--dut-config PATH` | Path to a DUT-only configuration file |
 | `--uvm-config PATH` | Path to a UVM-only configuration file |
 | `--use-cache` | Skip config resolution and load paths from `.uvm_pygen/cache.json` |
+| `--reset` | Re-seed the merge cache from the current output directory before generating (fixes cold-start) |
 | `--debug` | Enable debug-level log output |
 
 When no flags are given the tool auto-discovers YAML files in the current directory.
@@ -238,6 +242,14 @@ Running the generator produces the following files in the working directory:
 ## Manual Edit Preservation
 
 After the initial generation you can freely edit any generated file. When you re-run the generator (e.g. after updating the config), UVM_PYGEN performs a **3-way merge** between the previously generated version, the newly generated version, and your edited file. Changes you made are kept; parts regenerated from the template are updated. No special markers or protected regions are needed.
+
+**Cold start (missing cache)** — if the output directory exists but the merge cache (`.uvm_pygen/`) has been deleted or was never created, the tool cannot safely merge and will skip the affected files to avoid overwriting your content. Run with `--reset` once to re-seed the cache from the current files on disk:
+
+```bash
+python main.py --reset --config config.yaml
+```
+
+This adopts the current file contents as the new merge base and then proceeds with normal generation.
 
 ---
 

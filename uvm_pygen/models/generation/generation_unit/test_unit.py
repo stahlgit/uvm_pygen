@@ -1,4 +1,10 @@
-"""Tests generation unit."""
+"""
+Project Name: uvm_pygen
+File Name: test_unit.py
+Description: Tests generation unit.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,11 +61,13 @@ class TestsUnit(GenerationUnit):
             "agents": model.agents,
             "tests": [
                 f"{model.dut_instance_name}_base_test",
-                f"{model.dut_instance_name}_random_test",
+                *(
+                    [f"{model.dut_instance_name}_random_test"]
+                    if any(a.has(ComponentType.DRIVER) and a.mode == AgentMode.ACTIVE for a in model.agents)
+                    else []
+                ),
             ],
         }
-
-    #BUG: if there is only passive agent, random test is not generated but included in test_pkg !
     def _post_run(self, reg: GenerationRegistry, model: EnvModel, written: dict[str, Path]) -> None:
         reg.register(self.key)
         pkg_filename = f"{model.dut_instance_name}_test_pkg.sv"

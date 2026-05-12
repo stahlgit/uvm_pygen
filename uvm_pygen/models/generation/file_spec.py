@@ -1,4 +1,10 @@
-"""Specification for generating a single file from a Jinja2 template."""
+"""
+Project Name: uvm_pygen
+File Name: file_spec.py
+Description: Specification for generating a single file from Jinja2 template.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from collections.abc import Callable
 from typing import Any

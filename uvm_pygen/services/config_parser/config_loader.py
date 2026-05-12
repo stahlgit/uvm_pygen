@@ -1,4 +1,10 @@
-"""Configuration Loader Module."""
+"""
+Project Name: uvm_pygen
+File Name: config_loader.py
+Description: Configuration Loader Module.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from __future__ import annotations
 

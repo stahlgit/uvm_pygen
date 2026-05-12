@@ -1,4 +1,10 @@
-"""Base class for configuration objects loaded from YAML files."""
+"""
+Project Name: uvm_pygen
+File Name: base_config.py
+Description: Base class for configuration objects loaded from YAML files.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from abc import ABC, abstractmethod
 from pathlib import Path

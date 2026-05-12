@@ -1,10 +1,19 @@
-"""Main script to generate UVM verification environment based on configurations."""
+"""
+Project Name: uvm_pygen
+File Name: __init__.py
+Description: Main script to generate UVM verification environment based on configurations.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 import sys
 
 from uvm_pygen.services.config_parser.config_cache import read_cache, write_cache
 from uvm_pygen.services.config_parser.config_loader import ConfigLoader
-from uvm_pygen.services.config_parser.config_resolver import ConfigResolver, ResolvedConfigs
+from uvm_pygen.services.config_parser.config_resolver import (
+    ConfigResolver,
+    ResolvedConfigs,
+)
 from uvm_pygen.services.generation.file_manager import FileManager
 from uvm_pygen.services.generation.generator import Generator
 from uvm_pygen.services.model_builder.model_builder import ModelBuilder
@@ -33,7 +42,9 @@ def run():
     if resolved.is_unified:
         loader = ConfigLoader(unified_config_path=resolved.unified)
     elif resolved.is_split:
-        loader = ConfigLoader(dut_config_path=resolved.dut, uvm_config_path=resolved.uvm)
+        loader = ConfigLoader(
+            dut_config_path=resolved.dut, uvm_config_path=resolved.uvm
+        )
     else:
         logger.error(
             "Could not locate configuration files. "
@@ -43,7 +54,9 @@ def run():
         sys.exit(1)
 
     if not loader.validate():
-        logger.error("Configuration validation failed. Please check the provided YAML files for errors.")
+        logger.error(
+            "Configuration validation failed. Please check the provided YAML files for errors."
+        )
         sys.exit(1)
 
     write_cache(resolved)

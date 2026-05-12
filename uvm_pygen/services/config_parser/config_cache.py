@@ -1,4 +1,10 @@
-"""Cache for last-used configuration paths (.uvm_pygen/cache.json)."""
+"""
+Project Name: uvm_pygen
+File Name: config_cache.py
+Description: Cache for last-used configuration paths (.uvm_pygen/cache.json).
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from __future__ import annotations
 

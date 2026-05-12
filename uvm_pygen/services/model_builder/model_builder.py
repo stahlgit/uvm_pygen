@@ -1,4 +1,10 @@
-"""Service to build Logic Models from Raw Configurations."""
+"""
+Project Name: uvm_pygen
+File Name: model_builder.py
+Description: Service to build Logic Models from Raw Configurations.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from uvm_pygen.constants.uvm_enum import AgentMode, ComponentType, Direction, ReferenceModelStrategy
 from uvm_pygen.models.config_schema.dut_dataclass import Port

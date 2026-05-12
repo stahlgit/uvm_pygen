@@ -1,4 +1,10 @@
-"""GenerationUnit - declarative building block for the generation pipeline."""
+"""
+Project Name: uvm_pygen
+File Name: generation_unit.py
+Description: GenerationUnit - declarative building block for the generation pipeline.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from abc import ABC
 from dataclasses import dataclass, field

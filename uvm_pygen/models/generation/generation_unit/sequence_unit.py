@@ -1,4 +1,10 @@
-"""Concrete generation unit for sequence packages."""
+"""
+Project Name: uvm_pygen
+File Name: sequence_unit.py
+Description: Concrete generation unit for sequence packages.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path

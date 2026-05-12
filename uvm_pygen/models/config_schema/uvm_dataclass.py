@@ -1,4 +1,10 @@
-"""UVM models for UVM testbench generation."""
+"""
+Project Name: uvm_pygen
+File Name: uvm_dataclass.py
+Description: UVM models for UVM testbench generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from typing import Any
 

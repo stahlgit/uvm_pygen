@@ -1,4 +1,10 @@
-"""Configuration resolver — discovers config files and handles unified configs."""
+"""
+Project Name: uvm_pygen
+File Name: config_resolver.py
+Description: Configuration resolver — discovers config files and handles unified configs.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from __future__ import annotations
 

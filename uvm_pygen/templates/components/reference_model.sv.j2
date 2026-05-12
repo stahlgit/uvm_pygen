@@ -40,7 +40,7 @@ class {{ refmodel_name }} extends uvm_subscriber #({{ trans_type }});
         // inp.{{ var.name }}
         {% endfor %}
 
-        // *** PREDICTION LOGIC GOES HERE ***
+        // ***TODO: PREDICTION LOGIC GOES HERE ***
         // Output fields to populate:
         {% for var in output_trans.variables if var.direction.value == 'output' %}
         // outp.{{ var.name }} = ...;

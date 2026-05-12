@@ -1,4 +1,10 @@
-"""Data models for internal representation of UVM transactions."""
+"""
+Project Name: uvm_pygen
+File Name: transaction_model.py
+Description: Data models for internal representation of UVM transactions
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 

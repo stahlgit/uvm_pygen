@@ -1,4 +1,10 @@
-"""FileManager module for handling file operations."""
+"""
+Project Name: uvm_pygen
+File Name: file_manager.py
+Description: FileManager module for handling file operations.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pathlib import Path
 

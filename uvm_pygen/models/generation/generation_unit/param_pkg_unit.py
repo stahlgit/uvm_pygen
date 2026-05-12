@@ -1,4 +1,10 @@
-"""Concrete generation unit for parameter packages."""
+"""
+Project Name: uvm_pygen
+File Name: param_pkg_unit.py
+Description: Concrete generation unit for parameter packages.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass
 from pathlib import Path

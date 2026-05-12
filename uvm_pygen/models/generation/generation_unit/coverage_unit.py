@@ -1,4 +1,10 @@
-"""Module for the coverage generation unit."""
+"""
+Project Name: uvm_pygen
+File Name: coverage_unit.py
+Description: Module for the coverage generation unit.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from typing import ClassVar

@@ -1,4 +1,10 @@
-"""Module for rendering templates using Jinja2."""
+"""
+Project Name: uvm_pygen
+File Name: renderer.py
+Description: Module for rendering templates using Jinja2.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pathlib import Path
 
@@ -23,7 +29,7 @@ class TemplateRenderer:
             trim_blocks=True,
             lstrip_blocks=True,
             keep_trailing_newline=True,
-            extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"],
+            extensions=["jinja2.ext.loopcontrols"],
         )
 
         # Add any custom filters or globals here if needed, e.g.:

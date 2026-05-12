@@ -21,23 +21,8 @@ exclude = ["build", "dist", ".venv", "lib", "tools"]
 fix = true
 
 [tool.ruff.lint]
-ignore = ["F403", "E501", "PLR0913"]
-# Enable rulesets
-select = [
-    "E", # pycodestyle errors
-    "F", # pyflakes
-    "I", # isort
-    "D", # pydocstyle
-    "UP", # pyupgrade
-    "C90", # mccabe complexity
-    "TID", # tidy imports
-    "PL", # pylint (partial)
-    "SIM", # simplify
-    "PT", # pytest
-    "B", # bugbear
-    "A", # builtins
-    "DTZ"  # datetime
-]
+select = ["E", "F", "D", "I", "UP", "C90", "TID", "PL", "SIM", "PT", "B", "A", "DTZ"]
+ignore = ["F403", "E501", "PLR0913", "D100", "D205", "D212", "D415", "D400"]
 
 # Docstring style (Google)
 [tool.ruff.lint.pydocstyle]

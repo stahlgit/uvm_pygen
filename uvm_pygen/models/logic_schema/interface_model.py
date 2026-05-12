@@ -1,4 +1,10 @@
-"""Model representing internal logic for UVM interface generation."""
+"""
+Project Name: uvm_pygen
+File Name: interface_model.py
+Description: Model representing internal logic for UVM interface generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pydantic import BaseModel, ConfigDict, field_validator
 

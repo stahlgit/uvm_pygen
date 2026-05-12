@@ -1,4 +1,10 @@
-"""Generation unit models for UVM environment generation."""
+"""
+Project Name: uvm_pygen
+File Name: generation_unit/__init__.py
+Description: Generation unit models for UVM environment generation
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from .agent_unit import AgentsUnit
 from .coverage_unit import CoverageUnit

@@ -1,4 +1,10 @@
-"""UVM Configuration Model."""
+"""
+Project Name: uvm_pygen
+File Name: uvm_config.py
+Description: UVM Configuration Model and Parser.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from __future__ import annotations
 

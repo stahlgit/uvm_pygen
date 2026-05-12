@@ -1,4 +1,10 @@
-"""Generates UVM verification environment based on the provided environment model."""
+"""
+Project Name: uvm_pygen
+File Name: generator.py
+Description: Main orchestrator for generating UVM verification environment based on the provided environment model.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from uvm_pygen.models.generation.generation_unit import (
     AgentsUnit,

@@ -1,4 +1,10 @@
-"""Models representing the environment structure for UVM testbench generation."""
+"""
+Project Name: uvm_pygen
+File Name: env_model.py
+Description: Models representing the environment structure for UVM testbench generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 

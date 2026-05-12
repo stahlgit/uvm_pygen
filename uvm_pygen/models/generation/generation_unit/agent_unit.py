@@ -1,4 +1,10 @@
-"""Concrete generation unit for agent packages."""
+"""
+Project Name: uvm_pygen
+File Name: agent_unit.py
+Description: Concrete generation unit for agent packages.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from typing import ClassVar

@@ -1,4 +1,10 @@
-"""Utility parser for command-line arguments."""
+"""
+Project Name: uvm_pygen
+File Name: parser.py
+Description: Utility parser for command-line arguments
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 import argparse
 

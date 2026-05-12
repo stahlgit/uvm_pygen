@@ -1,4 +1,10 @@
-"""UVM Enums for UVM-Pygen."""
+"""
+Project Name: uvm_pygen
+File Name: uvm_enum.py
+Description: UVM Enums for UVM-Pygen.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from enum import StrEnum, auto
 

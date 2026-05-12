@@ -1,4 +1,10 @@
-"""Cache constants for UVM-Pygen."""
+"""
+Project Name: uvm_pygen
+File Name: cache_enum.py
+Description: Cache constants for UVM-Pygen.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from enum import StrEnum, auto
 

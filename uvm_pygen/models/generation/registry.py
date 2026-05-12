@@ -1,4 +1,10 @@
-"""Generation registry for tracking file paths, content and shared context."""
+"""
+Project Name: uvm_pygen
+File Name: registry.py
+Description: Generation registry for tracking file paths, content and shared context.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path

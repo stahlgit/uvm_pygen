@@ -1,4 +1,10 @@
-"""Model for scoreboard generation."""
+"""
+Project Name: uvm_pygen
+File Name: scoreboard_model.py
+Description: Model for scoreboard generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pydantic import BaseModel, ConfigDict, Field
 

@@ -1,4 +1,10 @@
-"""Concrete generation unit for interface generation."""
+"""
+Project Name: uvm_pygen
+File Name: interface_unit.py
+Description: Concrete generation unit for interface generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from typing import ClassVar, override
@@ -62,15 +68,12 @@ class InterfaceUnit(GenerationUnit):
             trans = iface_to_trans.get(iface.name)
             if trans is None:
                 logger.warning(
-                    f"⚠️  No agent maps a transaction to interface '{iface.name}' "
-                    f"— falling back to primary transaction."
+                    f"⚠️  No agent maps a transaction to interface '{iface.name}' — falling back to primary transaction."
                 )
                 trans = primary_trans
 
             trans_type = trans.class_name if trans else reg.get_context("trans_type", self.key)
-            trans_pkg_name = (
-                f"{trans.class_name.lower()}_pkg" if trans else reg.get_context("trans_pkg_name", self.key)
-            )
+            trans_pkg_name = f"{trans.class_name.lower()}_pkg" if trans else reg.get_context("trans_pkg_name", self.key)
 
             context = {
                 "if_model": iface,

@@ -1,4 +1,10 @@
-"""Model representing internal logic for UVM reference model generation."""
+"""
+Project Name: uvm_pygen
+File Name: reference_model.py
+Description: Model representing internal logic for UVM reference model generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from pydantic import BaseModel, ConfigDict, Field
 

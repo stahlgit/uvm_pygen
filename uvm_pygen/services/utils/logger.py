@@ -1,4 +1,10 @@
-"""Logging utilities for uvm_pygen, including enhanced JSON formatting and debug mode toggling."""
+"""
+Project Name: uvm_pygen
+File Name: logger.py
+Description: Logging utilities for uvm_pygen, including enhanced JSON formatting and debug mode toggling.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 import logging
 import pprint

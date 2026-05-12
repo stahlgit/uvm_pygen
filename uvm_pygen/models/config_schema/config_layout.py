@@ -1,4 +1,9 @@
-"""YAML layout registry — single source of truth for DUT / UVM top-level keys.
+"""
+Project Name: uvm_pygen
+File Name: config_layout.py
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+Description: YAML layout registry — single source of truth for DUT / UVM top-level keys.
 
 Every Pydantic model that maps to a top-level YAML section declares its section
 membership via ``json_schema_extra``:
@@ -115,8 +120,12 @@ class ConfigLayout:
         self.dut_required_keys: frozenset[str] = _expand_with_aliases(raw_dut_req)
         self.uvm_required_keys: frozenset[str] = _expand_with_aliases(raw_uvm_req)
 
-        self.dut_required_key_groups: tuple[frozenset[str], ...] = self._build_required_key_groups(raw_dut_req)
-        self.uvm_required_key_groups: tuple[frozenset[str], ...] = self._build_required_key_groups(raw_uvm_req)
+        self.dut_required_key_groups: tuple[frozenset[str], ...] = (
+            self._build_required_key_groups(raw_dut_req)
+        )
+        self.uvm_required_key_groups: tuple[frozenset[str], ...] = (
+            self._build_required_key_groups(raw_uvm_req)
+        )
 
     def _required_keys_raw(self, section: str) -> set[str]:
         """Return canonical required keys for a section (no alias expansion)."""
@@ -136,7 +145,9 @@ class ConfigLayout:
         Each group contains all accepted forms of the key; at least one must
         be present in the YAML for the requirement to be satisfied.
         """
-        return tuple(YAML_KEY_ALIAS_GROUPS.get(key, frozenset({key})) for key in raw_keys)
+        return tuple(
+            YAML_KEY_ALIAS_GROUPS.get(key, frozenset({key})) for key in raw_keys
+        )
 
 
 # Module-level singleton — imported by ConfigResolver and anywhere else that needs to reason about the YAML layout without touching raw strings.

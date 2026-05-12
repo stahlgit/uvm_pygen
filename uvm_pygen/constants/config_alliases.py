@@ -1,19 +1,31 @@
-# uvm_pygen/constants/config_aliases.py
-
-"""Accepted YAML key aliases for environment and other top-level blocks.
+"""
+Project Name: uvm_pygen
+File Name: config_alliases.py
+Description: Accepted YAML key aliases for environment and other top-level blocks.
 
 Single source of truth — imported by ConfigResolver (for unified-file
 detection) and UVMConfiguration._parse() (for flexible key lookup).
+
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
 """
 
 ENV_BLOCK_ALIASES: frozenset[str] = frozenset({"environment", "env", "uvm_env"})
-TRANSACTION_ALIASES: frozenset[str] = frozenset({"transactions", "transaction", "trans", "uvm_transactions"})
-PARAMETER_ALIASES: frozenset[str] = frozenset({"parameters", "parameter", "params", "param", "uvm_parameters"})
-ENUM_ALIASES: frozenset[str] = frozenset({"enums", "enum", "enumerations", "enumeration", "uvm_enums"})
+TRANSACTION_ALIASES: frozenset[str] = frozenset(
+    {"transactions", "transaction", "trans", "uvm_transactions"}
+)
+PARAMETER_ALIASES: frozenset[str] = frozenset(
+    {"parameters", "parameter", "params", "param", "uvm_parameters"}
+)
+ENUM_ALIASES: frozenset[str] = frozenset(
+    {"enums", "enum", "enumerations", "enumeration", "uvm_enums"}
+)
 REFERENCE_MODEL_ALIASES: frozenset[str] = frozenset(
     {"reference_model", "ref_model", "refmodel", "model", "uvm_reference_model"}
 )
-INTERFACE_ALIASES: frozenset[str] = frozenset({"interfaces", "interface", "uvm_interfaces", "ifs", "if"})
+INTERFACE_ALIASES: frozenset[str] = frozenset(
+    {"interfaces", "interface", "uvm_interfaces", "ifs", "if"}
+)
 AGENT_ALIASES: frozenset[str] = frozenset(
     {"agents", "agent", "uvm_agents", "components", "component", "uvm_components"}
 )

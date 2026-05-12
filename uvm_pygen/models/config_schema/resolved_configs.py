@@ -1,4 +1,10 @@
-"""Data model for resolved configuration paths."""
+"""
+Project Name: uvm_pygen
+File Name: resolved_configs.py
+Description: Data model for resolved configuration paths
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass
 from pathlib import Path

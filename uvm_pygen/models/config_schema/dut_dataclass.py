@@ -1,4 +1,10 @@
-"""DUT models for UVM testbench generation."""
+"""
+Project Name: uvm_pygen
+File Name: dut_dataclass.py
+Description: DUT models for UVM testbench generation.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from typing import Any
 

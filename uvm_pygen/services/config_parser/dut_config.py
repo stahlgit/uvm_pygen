@@ -1,4 +1,10 @@
-"""DUT Configuration Parser and Model."""
+"""
+Project Name: uvm_pygen
+File Name: dut_config.py
+Description: DUT Configuration Parser and Model.
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from __future__ import annotations
 

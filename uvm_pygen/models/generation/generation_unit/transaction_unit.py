@@ -1,4 +1,10 @@
-"""Concrete generation unit for transaction generation."""
+"""
+Project Name: uvm_pygen
+File Name: transaction_unit.py
+Description: Concrete generation unit for transaction generation."
+Author: Peter Stahl (xstahl01@stud.fit.vut.cz)
+Date: 2026-05-11
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path
